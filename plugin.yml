@@ -1,0 +1,51 @@
+name: PopulationDensity
+main: me.ryanhamshire.PopulationDensity.PopulationDensity
+version: 1.4
+commands:
+   visitregion:
+      description: Teleports the player to a specified region.
+      usage: /visitregion [region name]    
+   homeregion:
+      description: Returns the player to his/her home region.
+      usage: /homeregion
+   movein:
+      description: Updates a user's home region to his current region.
+      usage: /movein
+   newestregion:
+      description: Teleports the player to the newest region.
+      usage: /newestregion
+   spawnregion:
+      description: Teleports the player to the default spawn.
+      usage: /spawnregion
+   cityregion:
+      description: Teleports the player to the city region.
+      usage: /cityregion
+   addregion:
+      description: Closes the current open region and opens a new one.
+      usage: /addregion
+      permission: populationdensity.addregion
+   randomregion:
+      description: Teleports the player to a random region.
+      usage: /randomregion
+   invitetoregion:
+      description: Invites a player to move into your home region.
+      usage: /invitetoregion <player name>
+   acceptregioninvite:
+      description: Accepts an invitation to move into another player's home region.
+      usage: /acceptregioninvite       
+permissions:
+    populationdensity.*:
+        description: Grants region-teleportation, region-edit, and add-region privileges.
+        children:
+            populationdensity.buildbreakanywhere: true
+            populationdensity.teleportanywhere: true
+            populationdensity.addregion: true
+    populationdensity.buildbreakanywhere:
+        description: Grants permission to edit anywhere in the managed world, including region posts.
+        default: op
+    populationdensity.teleportanywhere:
+        description: Grants permission to use region-based teleportation from any location.
+        default: op
+    populationdensity.addregion:
+        description: Grants permission to the /addregion command.
+        default: op    
