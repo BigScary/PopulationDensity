@@ -142,4 +142,28 @@ public class PlayerEventHandler extends PlayerListener
 			respawnEvent.setRespawnLocation(homeRegionCenter);			
 		}
 	}
+	
+	//when a player uses a nether portal...
+	public void onPlayerPortal(PlayerPortalEvent event)
+	{
+		//figure out the from and to
+		Location from = event.getFrom();
+		Location to = event.getTo();
+		
+		//if the server doesn't know where to send the player and he's leaving from the managed world
+		if(to == null && from.getWorld().equals(PopulationDensity.ManagedWorld))
+		{
+			//manually set destination
+			Location destination = new Location(PopulationDensity.ManagedWorldNether, from.getX() * 0.125, from.getY() * 0.125, from.getZ() * 0.125);
+			event.setTo(destination);
+		}
+		
+		//otherwise if the server doesn't know where to send him and he's leaving from the nether world we created
+		else if (to == null && from.getWorld().equals(PopulationDensity.ManagedWorldNether))
+		{
+			//manually set destination
+			Location destination = new Location(PopulationDensity.ManagedWorld, from.getX() * 8, from.getY() * 8, from.getZ() * 8);
+			event.setTo(destination);
+		}
+	}
 }

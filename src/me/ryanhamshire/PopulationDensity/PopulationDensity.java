@@ -55,6 +55,9 @@ public class PopulationDensity extends JavaPlugin
 	//the world managed by this plugin
 	public static World ManagedWorld;
 	
+	//the nether world associated with the managed world
+	public static World ManagedWorldNether;
+	
 	//the default world, not managed by this plugin
 	//(may be null in some configurations)
 	public static World CityWorld;
@@ -123,10 +126,20 @@ public class PopulationDensity extends JavaPlugin
 		ManagedWorld = this.getServer().getWorld(this.managedWorldName);
 		if(ManagedWorld == null)
 		{
-			AddLogEntry("Creating world " + this.managedWorldName + "...");
 			WorldCreator creator = WorldCreator.name(this.managedWorldName);
 			creator.environment(Environment.NORMAL);
 			ManagedWorld = creator.createWorld();
+		}
+		
+		if(this.getServer().getAllowNether())
+		{
+			ManagedWorldNether = this.getServer().getWorld(this.managedWorldName + "_nether");
+			if(ManagedWorldNether == null)
+			{
+				WorldCreator creator = WorldCreator.name(this.managedWorldName + "_nether");
+				creator.environment(Environment.NETHER);
+				ManagedWorldNether = creator.createWorld();
+			}
 		}
 		
 		//when datastore initializes, it loads player and region data, and posts some stats to the log
@@ -141,6 +154,7 @@ public class PopulationDensity extends JavaPlugin
 		pluginManager.registerEvent(Event.Type.PLAYER_QUIT, playerEventHandler, Event.Priority.Normal, this);
 		pluginManager.registerEvent(Event.Type.PLAYER_MOVE, playerEventHandler, Event.Priority.Normal, this);		
 		if(this.respawnInHomeRegion) pluginManager.registerEvent(Event.Type.PLAYER_RESPAWN, playerEventHandler, Event.Priority.Normal, this);
+		if(this.getServer().getAllowNether()) pluginManager.registerEvent(Event.Type.PLAYER_PORTAL, playerEventHandler, Event.Priority.Normal, this);
 		
 		//block events, to limit building around region posts and in some other cases (config dependent)
 		BlockEventHandler blockEventHandler = new BlockEventHandler(this.dataStore);
@@ -155,7 +169,7 @@ public class PopulationDensity extends JavaPlugin
 		//may open and close several regions before finally leaving an "acceptable" region open
 		this.updateOpenRegion();
 		
-		//make a note of the spawn world.  may be NULL if the configured spawn world name doesn't match an existing world
+		//make a note of the spawn world.  may be NULL if the configured city world name doesn't match an existing world
 		CityWorld = this.getServer().getWorld(this.cityWorldName); 
 	}
 	
@@ -214,8 +228,7 @@ public class PopulationDensity extends JavaPlugin
 				
 				else
 				{
-					player.sendMessage("You're not close enough to the teleportation hub to use this command.");
-					player.sendMessage("Look for a glowstone post on a wooden platform.");
+					player.sendMessage("You're not close enough to the spawn to use this command.");
 				}
 				
 				return true;
@@ -239,7 +252,11 @@ public class PopulationDensity extends JavaPlugin
 		else if((cmd.getName().equalsIgnoreCase("cityregion") || cmd.getName().equalsIgnoreCase("spawnregion")) && player != null)
 		{
 			//if city world isn't defined, this command isn't available
-			if(CityWorld == null) return true;
+			if(CityWorld == null)
+			{
+				player.sendMessage("There's no city to send you to.");
+				return true;
+			}
 			
 			//when teleportation is disabled, this command still works when the player is close to his HOME region post
 			if(!this.allowTeleportation)
@@ -264,7 +281,7 @@ public class PopulationDensity extends JavaPlugin
 				else
 				{
 					player.sendMessage("You must be close to your home region's post to use this command.");
-					player.sendMessage("Look for a glowing golden pillar on the surface.");
+					player.sendMessage("On the surface, look for a glowing pillar on a wooden platform.");
 				}
 				
 				return true;
@@ -292,10 +309,14 @@ public class PopulationDensity extends JavaPlugin
 		{
 			if(args.length < 1) return false;
 			
+			//figure out the player's home region
 			RegionCoordinates homeRegion = this.dataStore.getHomeRegionCoordinates(player);
+			
+			//record the invitation
 			this.dataStore.setInvitation(args[0], homeRegion);
 			player.sendMessage("Invitation sent.  Your friend must use /acceptregioninvite to accept.");
 			
+			//send a notification to the invitee, if he's available
 			Player invitee = this.getServer().getPlayer(args[0]);			
 			if(invitee != null)
 			{
@@ -309,7 +330,10 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("acceptregioninvite") && player != null)
 		{
+			//get the player's most recent invitation
 			RegionCoordinates inviteRegion = this.dataStore.getInvitation(player);
+			
+			//if he doesn't have one, tell him so
 			if(inviteRegion == null)
 			{
 				player.sendMessage("You haven't been invited to move into any regions.  A current resident must invite you with /invitetoregion first.");
@@ -340,6 +364,7 @@ public class PopulationDensity extends JavaPlugin
 				return true;
 			}
 			
+			//otherwise, set new home and teleport the player there right away
 			this.dataStore.setHomeRegionCoordinates(player, inviteRegion);
 			this.TeleportPlayer(player, inviteRegion);
 			
@@ -348,6 +373,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("movein") && player != null)
 		{
+			//if not in the managed world, /movein doesn't make sense
 			if(!player.getWorld().equals(ManagedWorld))
 			{
 				player.sendMessage("Sorry, no one can move in here.");
@@ -403,7 +429,7 @@ public class PopulationDensity extends JavaPlugin
 				//if a wilderness region, add a region post
 				if(regionName == null)
 				{
-					this.dataStore.AddRegionPost(currentRegion);
+					this.dataStore.AddRegionPost(currentRegion, true);
 				}
 				
 				this.dataStore.setHomeRegionCoordinates(player, RegionCoordinates.fromLocation(player.getLocation()));
@@ -415,7 +441,7 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		else if(cmd.getName().equalsIgnoreCase("addregion") && player != null)
-		{
+		{			
 			RegionCoordinates newRegion = this.dataStore.addRegion();
 			this.getServer().broadcastMessage("Region \"" + capitalize(this.dataStore.getRegionName(newRegion)) + "\" is now open and accepting new residents!");
 			if(this.allowTeleportation)
@@ -443,7 +469,11 @@ public class PopulationDensity extends JavaPlugin
 		if(player.hasPermission("populationdensity.teleportanywhere")) return true;
 		
 		//otherwise if teleportation is disabled, always deny
-		if(!this.allowTeleportation) return false;
+		if(!this.allowTeleportation)
+		{
+			player.sendMessage("Sorry, you don't have permission to use that command.");
+			return false;
+		}
 		
 		//if player is in his/her home region
 		RegionCoordinates homeRegion = this.dataStore.getHomeRegionCoordinates(player);
@@ -568,14 +598,15 @@ public class PopulationDensity extends JavaPlugin
 		this.nextResourceScanTime = Calendar.getInstance();
 		this.nextResourceScanTime.add(Calendar.HOUR, 6);
 		
+		RegionCoordinates region = this.dataStore.getOpenRegion();
+		AddLogEntry(" Examining available resources in region at " + region.toString() + "...");
+		
 		boolean repeat;
 		boolean alreadySlept = false;
 		boolean regionAdded = false;
 		do
 		{
-			RegionCoordinates region = this.dataStore.getOpenRegion();
-			
-			AddLogEntry((new Date()).toString() + " Examining available resources in region at " + region.toString() + "...");
+			region = this.dataStore.getOpenRegion();
 			
 			//initialize report content
 			int woodCount = 0;
@@ -750,7 +781,7 @@ public class PopulationDensity extends JavaPlugin
 			else
 			{
 				//deliver report
-				AddLogEntry("Resource report: " + (new Date()).toString());
+				AddLogEntry("Resource report: ");
 				AddLogEntry("    Wood :" + woodCount);
 				AddLogEntry("    Coal :" + coalCount);
 				AddLogEntry("    Iron :" + ironCount);

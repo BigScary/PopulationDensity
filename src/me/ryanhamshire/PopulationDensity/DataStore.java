@@ -23,6 +23,9 @@ import java.text.DateFormat;
 import java.util.*;
 
 import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 
 public class DataStore 
@@ -412,7 +415,7 @@ public class DataStore
 		this.findNextRegion();
 		
 		//build a signpost at the center of the newly opened region
-		this.AddRegionPost(this.openRegionCoordinates);
+		this.AddRegionPost(this.openRegionCoordinates, true);
 		
 		return this.openRegionCoordinates;
 	}
@@ -485,7 +488,7 @@ public class DataStore
 	}
 	
 	//actually edits the world to create a region post at the center of the specified region	
-	public void AddRegionPost(RegionCoordinates region)
+	public void AddRegionPost(RegionCoordinates region, boolean updateNeighboringRegions)
 	{
 		//find the center
 		Location regionCenter = PopulationDensity.getRegionCenter(region);		
@@ -509,7 +512,8 @@ public class DataStore
 				blockType == Material.AIR 		|| 
 				blockType == Material.LEAVES 	|| 
 				blockType == Material.GRASS		||
-				blockType == Material.GLOWSTONE
+				blockType == Material.GLOWSTONE ||
+				blockType == Material.SIGN_POST
 				));
 				
 		//build a wooden platform
@@ -537,6 +541,182 @@ public class DataStore
 		for(int y1 = y + 1; y1 <= y + 4; y1++)
 		{
 			PopulationDensity.ManagedWorld.getBlockAt(x, y1, z).setType(Material.GLOWSTONE);
+		}
+		
+		//if the region has a name, build a sign on top
+		String regionName = this.getRegionName(region);
+		if(regionName != null)
+		{		
+			regionName = PopulationDensity.capitalize(regionName);
+			Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 5, z);
+			block.setType(Material.SIGN_POST);
+			
+			Sign sign = (Sign)block.getState();
+			sign.setLine(1, regionName);
+			sign.update();
+		}
+		
+		//add a sign for the region to the south
+		regionName = this.getRegionName(new RegionCoordinates(region.x + 1, region.z));
+		if(regionName == null) regionName = "Wilderness";
+		regionName = PopulationDensity.capitalize(regionName);
+		
+		Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z - 1);
+		block.setType(Material.WALL_SIGN);
+		
+		Sign sign = (Sign)block.getState();
+		
+		sign.setLine(0, "S");
+		sign.setLine(1, "<--");
+		sign.setLine(2, regionName);
+		
+		org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+		signData.setFacingDirection(BlockFace.EAST);
+		sign.setData(signData);		
+		
+		sign.update();
+		
+		//if a city world is defined, also add a /cityregion sign on the east side of the post
+		if(PopulationDensity.CityWorld != null)
+		{
+			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 4, z - 1);
+			block.setType(Material.WALL_SIGN);
+			
+			sign = (Sign)block.getState();
+			
+			sign.setLine(0, "Visit the City:");
+			sign.setLine(1, "/cityregion");
+			sign.setLine(2, "Return Home:");
+			sign.setLine(2, "/homeregion");
+			
+			signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.EAST);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
+		
+		//add a sign for the region to the east
+		regionName = this.getRegionName(new RegionCoordinates(region.x, region.z - 1));
+		if(regionName == null) regionName = "Wilderness";
+		regionName = PopulationDensity.capitalize(regionName);
+		
+		block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 3, z);
+		block.setType(Material.WALL_SIGN);
+		
+		sign = (Sign)block.getState();
+		
+		sign.setLine(0, "E");
+		sign.setLine(1, "<--");
+		sign.setLine(2, regionName);
+		
+		signData = (org.bukkit.material.Sign)sign.getData();
+		signData.setFacingDirection(BlockFace.NORTH);
+		sign.setData(signData);		
+		
+		sign.update();
+		
+		//if teleportation is enabled, also add a sign facing north for /visitregion
+		if(PopulationDensity.instance.allowTeleportation)
+		{
+			block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 4, z);
+			block.setType(Material.WALL_SIGN);
+			
+			sign = (Sign)block.getState();
+			
+			sign.setLine(1, "Visit Friends:");
+			sign.setLine(2, "/visitregion");
+			
+			signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.NORTH);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
+		
+		//add a sign for the region to the west
+		regionName = this.getRegionName(new RegionCoordinates(region.x, region.z + 1));
+		if(regionName == null) regionName = "Wilderness";
+		regionName = PopulationDensity.capitalize(regionName);
+		
+		block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 3, z);
+		block.setType(Material.WALL_SIGN);
+		
+		sign = (Sign)block.getState();
+		
+		sign.setLine(0, "W");
+		sign.setLine(1, "<--");
+		sign.setLine(2, regionName);
+		
+		signData = (org.bukkit.material.Sign)sign.getData();
+		signData.setFacingDirection(BlockFace.SOUTH);
+		sign.setData(signData);		
+		
+		sign.update();
+		
+		//if teleportation is enabled, also add a sign facing south for /homeregion
+		if(PopulationDensity.instance.allowTeleportation)
+		{
+			block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 4, z);
+			block.setType(Material.WALL_SIGN);
+			
+			sign = (Sign)block.getState();
+			
+			sign.setLine(1, "Return Home:");
+			sign.setLine(2, "/homeregion");
+			
+			signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.SOUTH);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
+		
+		//add a sign for the region to the north
+		regionName = this.getRegionName(new RegionCoordinates(region.x - 1, region.z));
+		if(regionName == null) regionName = "Wilderness";
+		regionName = PopulationDensity.capitalize(regionName);
+		
+		block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z + 1);
+		block.setType(Material.WALL_SIGN);
+		
+		sign = (Sign)block.getState();
+		
+		sign.setLine(0, "N");
+		sign.setLine(1, "<--");
+		sign.setLine(2, regionName);
+		
+		signData = (org.bukkit.material.Sign)sign.getData();
+		signData.setFacingDirection(BlockFace.WEST);
+		sign.setData(signData);		
+		
+		sign.update();
+		
+		//if teleportation is enabled, also add a sign facing west for /newestregion and /randomregion
+		if(PopulationDensity.instance.allowTeleportation)
+		{
+			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 4, z + 1);
+			block.setType(Material.WALL_SIGN);
+			
+			sign = (Sign)block.getState();
+			
+			sign.setLine(0, "Adventure!");
+			sign.setLine(2, "/newestregion");
+			sign.setLine(3, "/randomregion");
+			
+			signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.WEST);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
+		
+		if(updateNeighboringRegions)
+		{
+			this.AddRegionPost(new RegionCoordinates(region.x - 1, region.z), false);
+			this.AddRegionPost(new RegionCoordinates(region.x + 1, region.z), false);
+			this.AddRegionPost(new RegionCoordinates(region.x, region.z - 1), false);
+			this.AddRegionPost(new RegionCoordinates(region.x, region.z + 1), false);
 		}
 	}
 	
