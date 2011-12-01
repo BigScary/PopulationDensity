@@ -566,7 +566,7 @@ public class DataStore
 		
 		Sign sign = (Sign)block.getState();
 		
-		sign.setLine(0, "S");
+		sign.setLine(0, "E");
 		sign.setLine(1, "<--");
 		sign.setLine(2, regionName);
 		
@@ -606,7 +606,7 @@ public class DataStore
 		
 		sign = (Sign)block.getState();
 		
-		sign.setLine(0, "E");
+		sign.setLine(0, "N");
 		sign.setLine(1, "<--");
 		sign.setLine(2, regionName);
 		
@@ -644,7 +644,7 @@ public class DataStore
 		
 		sign = (Sign)block.getState();
 		
-		sign.setLine(0, "W");
+		sign.setLine(0, "S");
 		sign.setLine(1, "<--");
 		sign.setLine(2, regionName);
 		
@@ -682,7 +682,7 @@ public class DataStore
 		
 		sign = (Sign)block.getState();
 		
-		sign.setLine(0, "N");
+		sign.setLine(0, "W");
 		sign.setLine(1, "<--");
 		sign.setLine(2, regionName);
 		

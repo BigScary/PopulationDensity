@@ -236,7 +236,7 @@ public class PopulationDensity extends JavaPlugin
 			
 			//check to ensure the player isn't already home
 			RegionCoordinates homeRegion = this.dataStore.getHomeRegionCoordinates(player);
-			if(!this.teleportFromAnywhere && homeRegion.equals(RegionCoordinates.fromLocation(player.getLocation())))
+			if(!player.hasPermission("populationdensity.teleportanywhere") && !this.teleportFromAnywhere && homeRegion.equals(RegionCoordinates.fromLocation(player.getLocation())))
 			{
 				player.sendMessage("You're already in your home region.");
 				return true;
@@ -434,7 +434,9 @@ public class PopulationDensity extends JavaPlugin
 				
 				this.dataStore.setHomeRegionCoordinates(player, RegionCoordinates.fromLocation(player.getLocation()));
 				this.dataStore.setLastMovedDate(player, new Date());
-				player.sendMessage("Welcome to your new home!  You may now mine and build here.");
+				player.sendMessage("Welcome to your new home!");
+				if(!this.buildBreakAnywhere)
+					player.sendMessage("You may now mine and build here.");
 				instance.sendRegionExcept(player.getName() + " has moved into this region!", RegionCoordinates.fromLocation(player.getLocation()), player);
 				return true;
 			}
@@ -475,20 +477,31 @@ public class PopulationDensity extends JavaPlugin
 			return false;
 		}
 		
-		//if player is in his/her home region
+		//if teleportation from anywhere is disabled
 		RegionCoordinates homeRegion = this.dataStore.getHomeRegionCoordinates(player);
-		if(!this.teleportFromAnywhere && homeRegion.equals(RegionCoordinates.fromLocation(player.getLocation())))
-		{
-			//get center of region coordinates (location of region post)
-			Location regionCenter = getRegionCenter(homeRegion);
-			regionCenter = ManagedWorld.getHighestBlockAt(regionCenter).getLocation();
-			
-			//if the player is too far away, send an error message and don't teleport
-			if(regionCenter.distanceSquared(player.getLocation()) > 100)
+		if(!this.teleportFromAnywhere)
+		{		
+			//if the player is in the managed nether world, deny
+			if(player.getWorld().equals(ManagedWorldNether))
 			{
-				player.sendMessage("You're not close enough to the region post to teleport.");
-				player.sendMessage("On the surface, look for a glowing yellow post on a wooden platform.");
+				player.sendMessage("You can't teleport from here!");
 				return false;
+			}
+			
+			//otherwise if in his home region but not close to the region post, deny
+			else if(homeRegion.equals(RegionCoordinates.fromLocation(player.getLocation())))
+			{
+				//get center of region coordinates (location of region post)
+				Location regionCenter = getRegionCenter(homeRegion);
+				regionCenter = ManagedWorld.getHighestBlockAt(regionCenter).getLocation();
+				
+				//if the player is too far away, send an error message and don't teleport
+				if(regionCenter.distanceSquared(player.getLocation()) > 100)
+				{
+					player.sendMessage("You're not close enough to the region post to teleport.");
+					player.sendMessage("On the surface, look for a glowing yellow post on a wooden platform.");
+					return false;
+				}
 			}
 		}
 		
