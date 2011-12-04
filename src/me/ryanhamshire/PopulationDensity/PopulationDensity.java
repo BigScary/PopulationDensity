@@ -627,7 +627,8 @@ public class PopulationDensity extends JavaPlugin
 			int ironCount = 0;
 			int goldCount = 0;
 			int redstoneCount = 0;
-			int diamondCount = 0;		
+			int diamondCount = 0;
+			int playerBlocks = 0;
 	
 			//initialize a new array to track where we've been
 			int maxHeight = ManagedWorld.getMaxHeight();
@@ -684,19 +685,60 @@ public class PopulationDensity extends JavaPlugin
 				//dequeue a block
 				currentBlock = unexaminedBlockQueue.remove();		
 				
-				//if not an air block, consider material
+				//if not a pass-through block, consider material
 				Material material = currentBlock.getType();
-				if(material != Material.AIR)
+				if(		material != Material.AIR && 
+						material != Material.WOOD_DOOR && 
+						material != Material.WOODEN_DOOR &&
+						material != Material.IRON_DOOR_BLOCK && 
+						material != Material.TRAP_DOOR &&
+						material != Material.LADDER
+						)
 				{
 					if(material == Material.LOG) woodCount++;
 					else if (material == Material.COAL_ORE) coalCount++;
 					else if (material == Material.IRON_ORE) ironCount++;
 					else if (material == Material.GOLD_ORE) goldCount++;
 					else if (material == Material.REDSTONE_ORE) redstoneCount++;
-					else if (material == Material.DIAMOND_ORE) diamondCount++;				
+					else if (material == Material.DIAMOND_ORE) diamondCount++;	
+					else if (
+							material != Material.WATER && 
+							material != Material.STATIONARY_LAVA &&
+							material != Material.STATIONARY_WATER &&
+							material != Material.BROWN_MUSHROOM && 
+							material != Material.CACTUS &&
+							material != Material.DEAD_BUSH && 
+							material != Material.DIRT &&
+							material != Material.GRAVEL &&
+							material != Material.GRASS &&
+							material != Material.HUGE_MUSHROOM_1 &&
+							material != Material.HUGE_MUSHROOM_2 &&
+							material != Material.ICE &&
+							material != Material.LAPIS_ORE &&
+							material != Material.LAVA &&
+							material != Material.OBSIDIAN &&
+							material != Material.RED_MUSHROOM &&
+							material != Material.RED_ROSE &&
+							material != Material.LEAVES &&
+							material != Material.LOG &&
+							material != Material.LONG_GRASS &&
+							material != Material.SAND &&
+							material != Material.SANDSTONE &&
+							material != Material.SNOW &&
+							material != Material.STONE &&
+							material != Material.VINE &&
+							material != Material.WATER_LILY &&
+							material != Material.YELLOW_FLOWER &&
+							material != Material.MOSSY_COBBLESTONE && 
+							material != Material.CLAY &&
+							material != Material.SUGAR_CANE_BLOCK)
+					{
+						//AddLogEntry("PLAYER BLOCK " + material.name());
+						playerBlocks++;
+					}
 				}
 				
-				//otherwise for air blocks...
+				//otherwise for pass-through blocks, continue searching
 				else
 				{
 					//get its location
@@ -795,17 +837,19 @@ public class PopulationDensity extends JavaPlugin
 			{
 				//deliver report
 				AddLogEntry("Resource report: ");
-				AddLogEntry("    Wood :" + woodCount);
-				AddLogEntry("    Coal :" + coalCount);
-				AddLogEntry("    Iron :" + ironCount);
-				AddLogEntry("    Gold :" + goldCount);
-				AddLogEntry("Redstone :" + redstoneCount);
-				AddLogEntry(" Diamond :" + diamondCount);
-				
+				AddLogEntry("");				
+				AddLogEntry("         Wood :" + woodCount);
+				AddLogEntry("         Coal :" + coalCount);
+				AddLogEntry("         Iron :" + ironCount);
+				AddLogEntry("         Gold :" + goldCount);
+				AddLogEntry("     Redstone :" + redstoneCount);
+				AddLogEntry("      Diamond :" + diamondCount);
+				AddLogEntry("Player Blocks :" + playerBlocks);
+				AddLogEntry("");
 				AddLogEntry(" Resource Score : " + resourceScore);
 				
 				//if NOT sufficient resources for a good start
-				if(!(resourceScore > 200 && woodCount > 200))
+				if(resourceScore < 200 || woodCount < 200 || playerBlocks > 1000)
 				{					
 					//add a new region and plan to repeat the process in that new region
 					this.dataStore.addRegion();
