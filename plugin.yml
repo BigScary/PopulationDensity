@@ -1,6 +1,6 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
-version: 1.2
+version: 1.4
 commands:
    visitregion:
       description: Teleports the player to a specified region.

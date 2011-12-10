@@ -612,7 +612,7 @@ public class PopulationDensity extends JavaPlugin
 		this.nextResourceScanTime.add(Calendar.HOUR, 6);
 		
 		RegionCoordinates region = this.dataStore.getOpenRegion();
-		AddLogEntry(" Examining available resources in region at " + region.toString() + "...");
+		AddLogEntry("Examining available resources in region \"" + this.dataStore.getRegionName(region) + "\"...");
 		
 		boolean repeat;
 		boolean alreadySlept = false;
@@ -836,7 +836,7 @@ public class PopulationDensity extends JavaPlugin
 			else
 			{
 				//deliver report
-				AddLogEntry("Resource report: ");
+				AddLogEntry("Resource report for region \"" + this.dataStore.getRegionName(region) + "\": ");
 				AddLogEntry("");				
 				AddLogEntry("         Wood :" + woodCount);
 				AddLogEntry("         Coal :" + coalCount);
@@ -849,7 +849,7 @@ public class PopulationDensity extends JavaPlugin
 				AddLogEntry(" Resource Score : " + resourceScore);
 				
 				//if NOT sufficient resources for a good start
-				if(resourceScore < 200 || woodCount < 200 || playerBlocks > 1000)
+				if(resourceScore < 200 || woodCount < 200 || playerBlocks > 15000)
 				{					
 					//add a new region and plan to repeat the process in that new region
 					this.dataStore.addRegion();

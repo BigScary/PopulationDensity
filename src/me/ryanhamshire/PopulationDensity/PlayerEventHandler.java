@@ -86,26 +86,29 @@ public class PlayerEventHandler extends PlayerListener
 			return;
 		}
 		
-		//otherwise, we're just watching movement to notify players as they wander into new regions
-		Location to = event.getTo();
-		Location from = event.getFrom();		
-		
-		//figure out which region he was in before he moved, and where he is after the move
-		//note that these methods will return NULL when the location passed in is not in the managed world
-		RegionCoordinates previousRegion = RegionCoordinates.fromLocation(from);
-		RegionCoordinates currentRegion = RegionCoordinates.fromLocation(to);
-				
-		//if both locations are outside the managed world, don't do anything
-		if(currentRegion == null && previousRegion == null)
+		//otherwise, if we're just watching movement to notify players as they wander into new regions
+		if(!PopulationDensity.instance.buildBreakAnywhere)
 		{
-			return;
-		}
-		
-		//otherwise if crossed a boundary in the managed world
-		if(previousRegion != null && !previousRegion.equals(currentRegion) || currentRegion != null && !currentRegion.equals(previousRegion))
-		{		
-			//tell him and everyone in the two regions about the change
-			PopulationDensity.instance.notifyRegionChange(player, previousRegion, currentRegion);
+			Location to = event.getTo();
+			Location from = event.getFrom();		
+			
+			//figure out which region he was in before he moved, and where he is after the move
+			//note that these methods will return NULL when the location passed in is not in the managed world
+			RegionCoordinates previousRegion = RegionCoordinates.fromLocation(from);
+			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(to);
+					
+			//if both locations are outside the managed world, don't do anything
+			if(currentRegion == null && previousRegion == null)
+			{
+				return;
+			}
+			
+			//otherwise if crossed a boundary in the managed world
+			if(previousRegion != null && !previousRegion.equals(currentRegion) || currentRegion != null && !currentRegion.equals(previousRegion))
+			{		
+				//tell him and everyone in the two regions about the change
+				PopulationDensity.instance.notifyRegionChange(player, previousRegion, currentRegion);
+			}
 		}
 	}
 	

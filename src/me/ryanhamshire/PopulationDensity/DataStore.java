@@ -77,52 +77,6 @@ public class DataStore
 		}
 		
 		PopulationDensity.AddLogEntry("Open region: \"" + this.getRegionName(this.getOpenRegion()) + "\" at " + this.getOpenRegion().toString() + ".");		
-		
-		//load player data into memory		
-		File playerDataFolder = new File(playerDataFolderPath);
-		File [] files = playerDataFolder.listFiles();
-		
-		int loadedPlayerCount = 0;
-		
-		for(int i = 0; i < files.length; i++)
-		{			
-			if(files[i].isFile())  //avoids folders
-			{
-				try
-				{					
-					BufferedReader inStream = new BufferedReader(new FileReader(files[i].getAbsolutePath()));
-					
-					//first line is home region coordinates
-					String homeRegionCoordinatesString = inStream.readLine();
-					
-					//second line is date of last region move-in
-					String lastMovedString = inStream.readLine();
-					
-					inStream.close();
-					  
-					//convert string representation of home coordinates to a proper object
-					RegionCoordinates homeRegionCoordinates = new RegionCoordinates(homeRegionCoordinatesString);
-					  
-					//parse that date string
-					DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.ROOT);
-					Date lastMovedDate = dateFormat.parse(lastMovedString);
-					  
-					//shove both into memory for quick access
-					this.playerNameToHomeRegionCoordinatesMap.put(files[i].getName(), homeRegionCoordinates);
-					this.playerNameToLastMovedDateMap.put(files[i].getName(), lastMovedDate);
-										
-					loadedPlayerCount++;
-				}
-				
-				//if there's any problem with the file's content, log an error message and skip it
-				catch(Exception e)
-				{
-					 PopulationDensity.AddLogEntry("Unable to load data for player \"" + files[i].getName() + "\": " + e.getMessage());			 
-				}
-			}
-		}
-		
-		PopulationDensity.AddLogEntry(loadedPlayerCount + " total players loaded.");
 	}
 	
 	//remembers an invitation
@@ -321,22 +275,77 @@ public class DataStore
 		}
 	}
 	
-	//home region coordinates are loaded into memory during initialization, and read from there for performance
-	//they're used mostly by block-related code to check whether or not the player is allowed to place or break a block
+	//home region coordinates are used mostly by block-related code to check whether or not the player is allowed to place or break a block
 	public RegionCoordinates getHomeRegionCoordinates(Player player)
 	{
-		return this.playerNameToHomeRegionCoordinatesMap.get(player.getName());
+		//first, check the in-memory cache
+		RegionCoordinates region = this.playerNameToHomeRegionCoordinatesMap.get(player.getName());
+		if(region != null) return region;
+		
+		//if not there, try to load the player from file		
+		loadPlayerDataFromFile(player.getName());
+		
+		//check again (may return null, if there wasn't any player data to load from file)
+		return this.playerNameToHomeRegionCoordinatesMap.get(player.getName());				
 	}
-
-	//last moved dates are loaded into memory during initialization, and read from there because it was easier to code that way
-	//(didn't want write the file reading code to read only the second line from the file)
+	
 	public Date getLastMovedDate(Player player)
 	{
+		//first, check the in-memory cache
+		Date date = this.playerNameToLastMovedDateMap.get(player.getName());
+		if(date != null) return date;
+		
+		//if not there, try to load the player from file		
+		loadPlayerDataFromFile(player.getName());
+		
+		//check again (may return null, if there wasn't any player data to load from file)
 		return this.playerNameToLastMovedDateMap.get(player.getName());
 	}
 	
+	private void loadPlayerDataFromFile(String playerName)
+	{
+		//load player data into memory		
+		File playerFile = new File(playerDataFolderPath + File.separator + playerName);
+		
+		try
+		{					
+			BufferedReader inStream = new BufferedReader(new FileReader(playerFile.getAbsolutePath()));
+			
+			//first line is home region coordinates
+			String homeRegionCoordinatesString = inStream.readLine();
+			
+			//second line is date of last region move-in
+			String lastMovedString = inStream.readLine();
+			
+			inStream.close();
+			  
+			//convert string representation of home coordinates to a proper object
+			RegionCoordinates homeRegionCoordinates = new RegionCoordinates(homeRegionCoordinatesString);
+			  
+			//parse that date string
+			DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.ROOT);
+			Date lastMovedDate = dateFormat.parse(lastMovedString);
+			  
+			//shove both into memory for quick access
+			this.playerNameToHomeRegionCoordinatesMap.put(playerName, homeRegionCoordinates);
+			this.playerNameToLastMovedDateMap.put(playerName, lastMovedDate);
+		}
+		
+		//if the file isn't found, just don't do anything (probably a new-to-server player)
+		catch(FileNotFoundException e) 
+		{ 
+			return;
+		}
+		
+		//if there's any problem with the file's content, log an error message and skip it		
+		catch(Exception e)
+		{
+			 PopulationDensity.AddLogEntry("Unable to load data for player \"" + playerName + "\": " + e.getMessage());			 
+		}
+	}
+	
 	//adds a new region, assigning it a name and updating local variables accordingly
-	public synchronized RegionCoordinates addRegion()
+	public RegionCoordinates addRegion()
 	{
 		//first, find a unique name for the new region
 		String newRegionName; 
