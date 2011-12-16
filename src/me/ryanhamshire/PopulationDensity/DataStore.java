@@ -503,34 +503,54 @@ public class DataStore
 		Location regionCenter = PopulationDensity.getRegionCenter(region);		
 		int x = regionCenter.getBlockX();
 		int z = regionCenter.getBlockZ();
+		int y;
 
 		//make sure data is loaded for that area, because we're about to request data about specific blocks there
 		PopulationDensity.GuaranteeChunkLoaded(x, z);
 		
-		//find the highest block.  could be the surface, a tree, some grass...
-		int y = PopulationDensity.ManagedWorld.getHighestBlockYAt(x, z) + 1;
-
 		//sink lower until we find something solid
 		//also ignore glowstone, in case there's already a post here!
-		Material blockType;
+		//race condition issue: chunks say they're loaded when they're not.  if it looks like the chunk isn't loaded, try again (up to three times)
+		int retriesLeft = 3;
+		boolean tryAgain;
 		do
 		{
-			blockType = PopulationDensity.ManagedWorld.getBlockAt(x, --y, z).getType();
-		}
-		while(	y > 1 && (
-				blockType == Material.AIR 		|| 
-				blockType == Material.LEAVES 	|| 
-				blockType == Material.GRASS		||
-				blockType == Material.GLOWSTONE ||
-				blockType == Material.SIGN_POST
-				));
+			tryAgain = false;
+			
+			//find the highest block.  could be the surface, a tree, some grass...
+			y = PopulationDensity.ManagedWorld.getHighestBlockYAt(x, z) + 1;
+			
+			Material blockType;
+			do
+			{
+				blockType = PopulationDensity.ManagedWorld.getBlockAt(x, --y, z).getType();
+			}
+			while(	y > 1 && (
+					blockType == Material.AIR 		|| 
+					blockType == Material.LEAVES 	|| 
+					blockType == Material.GRASS		||
+					blockType == Material.GLOWSTONE ||
+					blockType == Material.SIGN_POST
+					));
+			
+			//if final y value is extremely small, it's probably wrong
+			if(y < 10 && retriesLeft-- > 0)
+			{
+				tryAgain = true;
+				try
+				{
+					Thread.sleep(500); //sleep half a second before restarting the loop
+				}
+				catch(InterruptedException e) {}
+			}
+		}while(tryAgain);
 				
-		//build a wooden platform
+		//build a stone platform
 		for(int x1 = x - 2; x1 <= x + 2; x1++)
 		{
 			for(int z1 = z - 2; z1 <= z + 2; z1++)
 			{
-				PopulationDensity.ManagedWorld.getBlockAt(x1, y + 1, z1).setType(Material.WOOD);
+				PopulationDensity.ManagedWorld.getBlockAt(x1, y + 1, z1).setType(Material.SMOOTH_BRICK);
 			}
 		}
 		
@@ -596,7 +616,7 @@ public class DataStore
 			sign.setLine(0, "Visit the City:");
 			sign.setLine(1, "/cityregion");
 			sign.setLine(2, "Return Home:");
-			sign.setLine(2, "/homeregion");
+			sign.setLine(3, "/homeregion");
 			
 			signData = (org.bukkit.material.Sign)sign.getData();
 			signData.setFacingDirection(BlockFace.EAST);

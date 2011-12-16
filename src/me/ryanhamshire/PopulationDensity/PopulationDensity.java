@@ -612,7 +612,6 @@ public class PopulationDensity extends JavaPlugin
 		this.nextResourceScanTime.add(Calendar.HOUR, 6);
 		
 		RegionCoordinates region = this.dataStore.getOpenRegion();
-		AddLogEntry("Examining available resources in region \"" + this.dataStore.getRegionName(region) + "\"...");
 		
 		boolean repeat;
 		boolean alreadySlept = false;
@@ -620,6 +619,7 @@ public class PopulationDensity extends JavaPlugin
 		do
 		{
 			region = this.dataStore.getOpenRegion();
+			AddLogEntry("Examining available resources in region \"" + this.dataStore.getRegionName(region) + "\"...");						
 			
 			//initialize report content
 			int woodCount = 0;
@@ -836,6 +836,7 @@ public class PopulationDensity extends JavaPlugin
 			else
 			{
 				//deliver report
+				AddLogEntry("");								
 				AddLogEntry("Resource report for region \"" + this.dataStore.getRegionName(region) + "\": ");
 				AddLogEntry("");				
 				AddLogEntry("         Wood :" + woodCount);
@@ -847,6 +848,7 @@ public class PopulationDensity extends JavaPlugin
 				AddLogEntry("Player Blocks :" + playerBlocks);
 				AddLogEntry("");
 				AddLogEntry(" Resource Score : " + resourceScore);
+				AddLogEntry("");								
 				
 				//if NOT sufficient resources for a good start
 				if(resourceScore < 200 || woodCount < 200 || playerBlocks > 15000)
@@ -856,12 +858,23 @@ public class PopulationDensity extends JavaPlugin
 					regionAdded = true;
 					alreadySlept = false;
 					repeat = true;
+					
+					if(resourceScore < 200 || woodCount < 200)
+					{
+						AddLogEntry("Summary: Insufficient near-surface resources.");			
+					}
+					else if(playerBlocks > 15000)
+					{
+						AddLogEntry("Summary: Region seems overcrowded.");			
+					}
 				}
 				
 				//otherwise we're done!
 				else
 				{
 					repeat = false;
+					AddLogEntry("Summary: Looks good!  New players will be assigned to start here.");
+					AddLogEntry("Resource scan complete, ready for players!");
 				}
 			}
 		}while(repeat);
