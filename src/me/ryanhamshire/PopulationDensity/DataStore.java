@@ -58,6 +58,9 @@ public class DataStore
 	//coordinates of the next region which will be opened, if one needs to be opened
 	private RegionCoordinates nextRegionCoordinates;
 	
+	//total number of regions
+	private int regionCount;
+	
 	//initialization!
 	public DataStore()
 	{
@@ -66,7 +69,7 @@ public class DataStore
 		new File(regionDataFolderPath).mkdirs();
 		
 		//study region data and initialize both this.openRegionCoordinates and this.nextRegionCoordinates
-		int regionCount = this.findNextRegion();
+		this.regionCount = this.findNextRegion();
 		PopulationDensity.AddLogEntry(regionCount + " total regions loaded.");
 		
 		//if no regions were loaded, create the first one
@@ -350,50 +353,25 @@ public class DataStore
 		//first, find a unique name for the new region
 		String newRegionName; 
 		
-		//if there are no regions yet, use the first name from the region names list
-		if(this.openRegionCoordinates == null)
+		//select a name from the list of region names		
+		//strategy: use names from the list in rotation, appending a number when a name is already used
+		//(redstone, mountain, valley, redstone1, mountain1, valley1, ...)
+		
+		int newRegionNumber = this.regionCount++ - 1;
+		
+		//as long as the generated name is already in use, move up one name on the list
+		do
 		{
-			newRegionName = this.regionNamesList[0];
-		}
-		
-		//otherwise, find a name that isn't already in use
-		else
-		{		
-			//get the name of the currently open region
-			String openRegionName = this.getRegionName(this.openRegionCoordinates);
-					
-			//if it exists, find it in the list of names
-			int nameIndex = -1;		
-			if(openRegionName != null)
-			{
-				for(nameIndex = 0; nameIndex < this.regionNamesList.length; nameIndex++)
-				{
-					if(this.regionNamesList[nameIndex].equalsIgnoreCase(openRegionName))
-						break;
-				}
-			}
+			newRegionNumber++;
+			int nameBodyIndex = newRegionNumber % this.regionNamesList.length;
+			PopulationDensity.AddLogEntry("namebodyindex " + nameBodyIndex);
+			int nameSuffix = newRegionNumber / this.regionNamesList.length;
+			PopulationDensity.AddLogEntry("nameSuffix " + nameSuffix);
+			newRegionName = this.regionNamesList[nameBodyIndex];
+			if(nameSuffix > 0) newRegionName += nameSuffix;
 			
-			//move up to next name in the list.  if at end, go back to start
-			nameIndex = (nameIndex + 1) % this.regionNamesList.length;
-				
-			newRegionName = this.regionNamesList[nameIndex].toLowerCase();
+		}while(this.getRegionCoordinates(newRegionName) != null);
 		
-			//if the name from the list is already in use...
-			if(this.getRegionCoordinates(newRegionName) != null)
-			{
-				//append numbers until a name is created which isn't in use
-				int numberToAppend = 0;
-				String newRegionNameWithNumber;
-				do
-				{
-					newRegionNameWithNumber = newRegionName + numberToAppend++;				
-				}
-				while(this.getRegionCoordinates(newRegionNameWithNumber) != null);
-				
-				newRegionName = newRegionNameWithNumber;
-			}
-		}
-
 		//"create" the region by saving necessary data to disk
 		//(region names to coordinates mappings aren't kept in memory because they're less often needed, and this way we keep it simple) 
 		try
