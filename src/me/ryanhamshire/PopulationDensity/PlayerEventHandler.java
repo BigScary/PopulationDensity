@@ -17,7 +17,9 @@
  */
 
 package me.ryanhamshire.PopulationDensity;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.*;
 
@@ -146,19 +148,38 @@ public class PlayerEventHandler extends PlayerListener
 		}
 	}
 	
-	//when a player uses a nether portal...
+	//when a player uses a portal...
 	public void onPlayerPortal(PlayerPortalEvent event)
 	{
 		//figure out the from and to
 		Location from = event.getFrom();
 		Location to = event.getTo();
 		
-		//if the server doesn't know where to send the player and he's leaving from the managed world
+		//if the server doesn't know where to send the player and he's leaving from the managed world, manually set the destination
 		if(to == null && from.getWorld().equals(PopulationDensity.ManagedWorld))
 		{
-			//manually set destination
-			Location destination = new Location(PopulationDensity.ManagedWorldNether, from.getX() * 0.125, from.getY() * 0.125, from.getZ() * 0.125);
-			event.setTo(destination);
+			if(from.getBlock().getType() == Material.PORTAL)
+			{
+				Location destination = new Location(PopulationDensity.ManagedWorldNether, from.getX() * 0.125, from.getY() * 0.125, from.getZ() * 0.125);
+				event.setTo(destination);
+			}
+			
+			//if it's an end portal
+			else if(from.getBlock().getType() == Material.ENDER_PORTAL)
+			{
+				Location destination = new Location(PopulationDensity.ManagedWorldEnd, 50, 100, 50);
+				Chunk chunk = PopulationDensity.ManagedWorldEnd.getChunkAt(destination);
+				chunk.load(true);
+				
+				event.setTo(destination);
+			}
+			
+			//if we can't determine where to send the player, don't send him anywhere
+			else
+			{
+				event.setCancelled(true);
+			}
+			
 		}
 		
 		//otherwise if the server doesn't know where to send him and he's leaving from the nether world we created
@@ -167,6 +188,6 @@ public class PlayerEventHandler extends PlayerListener
 			//manually set destination
 			Location destination = new Location(PopulationDensity.ManagedWorld, from.getX() * 8, from.getY() * 8, from.getZ() * 8);
 			event.setTo(destination);
-		}
+		}		
 	}
 }

@@ -223,7 +223,7 @@ public class DataStore
 		this.savePlayer(player, newHomeCoordinates, this.playerNameToLastMovedDateMap.get(player.getName()));
 	}
 	
-	//setse a player's last moved date, both in memory and on disk
+	//sets a player's last moved date, both in memory and on disk
 	public void setLastMovedDate(Player player, Date newLastMovedDate)
 	{
 		this.savePlayer(player, this.playerNameToHomeRegionCoordinatesMap.get(player.getName()), newLastMovedDate);
@@ -364,9 +364,7 @@ public class DataStore
 		{
 			newRegionNumber++;
 			int nameBodyIndex = newRegionNumber % this.regionNamesList.length;
-			PopulationDensity.AddLogEntry("namebodyindex " + nameBodyIndex);
 			int nameSuffix = newRegionNumber / this.regionNamesList.length;
-			PopulationDensity.AddLogEntry("nameSuffix " + nameSuffix);
 			newRegionName = this.regionNamesList[nameBodyIndex];
 			if(nameSuffix > 0) newRegionName += nameSuffix;
 			
@@ -731,13 +729,18 @@ public class DataStore
 	private final String [] regionNamesList = new String [] 
 	{
 		"redstone",
+		"morningthaw",
 		"mountain",
 		"valley",
+		"wintersebb",
 		"fjord",
 		"ledge",
 		"ravine",
+		"darktide",
 		"stream",
+		"glenwood",
 		"waterfall",
+		"cragstone",
 		"pickaxe",
 		"axe",
 		"hammer",

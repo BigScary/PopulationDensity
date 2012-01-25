@@ -58,6 +58,9 @@ public class PopulationDensity extends JavaPlugin
 	//the nether world associated with the managed world
 	public static World ManagedWorldNether;
 	
+	//the end world associated with the managed world
+	public static World ManagedWorldEnd;
+	
 	//the default world, not managed by this plugin
 	//(may be null in some configurations)
 	public static World CityWorld;
@@ -74,7 +77,9 @@ public class PopulationDensity extends JavaPlugin
 	public boolean moveInRequiresInvitation;
 	public String cityWorldName;
 	public String managedWorldName;
-	public int maxDistanceFromSpawnToUseHomeRegion;	
+	public int maxDistanceFromSpawnToUseHomeRegion;
+	public double densityRatio;
+	public boolean sendRegionChangeMessages;
 		
 	public synchronized static void AddLogEntry(String entry)
 	{
@@ -101,6 +106,8 @@ public class PopulationDensity extends JavaPlugin
 		this.cityWorldName = config.getString("PopulationDensity.CityWorldName", "");
 		this.maxDistanceFromSpawnToUseHomeRegion = config.getInt("PopulationDensity.MaxDistanceFromSpawnToUseHomeRegion", 25);
 		this.managedWorldName = config.getString("PopulationDensity.ManagedWorldName", "Population Density Managed World");
+		this.densityRatio = config.getDouble("PopulationDensity.DensityRatio", 1.0);
+		this.sendRegionChangeMessages = config.getBoolean("PopulationDensity.SendRegionChangeMessages", true);
 		
 		//write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
@@ -112,6 +119,8 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.MoveInRequiresInvitation", this.moveInRequiresInvitation);
 		config.set("PopulationDensity.MaxDistanceFromSpawnToUseHomeRegion", this.maxDistanceFromSpawnToUseHomeRegion);
 		config.set("PopulationDensity.ManagedWorldName", this.managedWorldName);
+		config.set("PopulationDensity.DensityRatio", this.densityRatio);
+		config.set("PopulationDensity.SendRegionChangeMessages", this.sendRegionChangeMessages);
 		
 		try
 		{
@@ -139,6 +148,17 @@ public class PopulationDensity extends JavaPlugin
 				WorldCreator creator = WorldCreator.name(this.managedWorldName + "_nether");
 				creator.environment(Environment.NETHER);
 				ManagedWorldNether = creator.createWorld();
+			}
+		}
+		
+		if(this.getServer().getAllowEnd())
+		{
+			ManagedWorldEnd = this.getServer().getWorld(this.managedWorldName + "_the_end");
+			if(ManagedWorldEnd == null)
+			{
+				WorldCreator creator = WorldCreator.name(this.managedWorldName + "_the_end");
+				creator.environment(Environment.THE_END);
+				ManagedWorldEnd = creator.createWorld();
 			}
 		}
 		
@@ -312,17 +332,20 @@ public class PopulationDensity extends JavaPlugin
 			//figure out the player's home region
 			RegionCoordinates homeRegion = this.dataStore.getHomeRegionCoordinates(player);
 			
-			//record the invitation
-			this.dataStore.setInvitation(args[0], homeRegion);
-			player.sendMessage("Invitation sent.  Your friend must use /acceptregioninvite to accept.");
-			
 			//send a notification to the invitee, if he's available
 			Player invitee = this.getServer().getPlayer(args[0]);			
 			if(invitee != null)
 			{
+				this.dataStore.setInvitation(args[0], homeRegion);
+				player.sendMessage("Invitation sent.  " + invitee.getName() + " must use /AcceptRegionInvite to accept.");
+				
 				invitee.sendMessage(player.getName() + " has invited you to move into his or her home region!");
 				invitee.sendMessage("You may only move once per week.  If you accept, you will be teleported to your new home immediately.");
-				invitee.sendMessage("Use /acceptregioninvite to accept.");
+				invitee.sendMessage("Use /AcceptRegionInvite to accept.");
+			}
+			else
+			{
+				player.sendMessage("There's no player named \"" + args[0] + "\" online right now.");
 			}
 			
 			return true;
@@ -336,7 +359,7 @@ public class PopulationDensity extends JavaPlugin
 			//if he doesn't have one, tell him so
 			if(inviteRegion == null)
 			{
-				player.sendMessage("You haven't been invited to move into any regions.  A current resident must invite you with /invitetoregion first.");
+				player.sendMessage("You haven't been invited to move into any regions.  Another player must invite you with /InviteToRegion first.");
 				return true;
 			}
 			
@@ -542,6 +565,9 @@ public class PopulationDensity extends JavaPlugin
 	//one of the latter two params may be NULL when the player is arriving in or departing from the spawn world
 	public void notifyRegionChange(Player player, RegionCoordinates previousRegion, RegionCoordinates currentRegion)
 	{
+		//if disabled, skip all this
+		if(!this.sendRegionChangeMessages) return;
+		
 		//if previous region is in the managed world, notify players in that region
 		if(previousRegion != null)
 		{
@@ -839,19 +865,19 @@ public class PopulationDensity extends JavaPlugin
 				AddLogEntry("");								
 				AddLogEntry("Resource report for region \"" + this.dataStore.getRegionName(region) + "\": ");
 				AddLogEntry("");				
-				AddLogEntry("         Wood :" + woodCount);
+				AddLogEntry("         Wood :" + woodCount + "  (Minimum: 200)");
 				AddLogEntry("         Coal :" + coalCount);
 				AddLogEntry("         Iron :" + ironCount);
 				AddLogEntry("         Gold :" + goldCount);
 				AddLogEntry("     Redstone :" + redstoneCount);
 				AddLogEntry("      Diamond :" + diamondCount);
-				AddLogEntry("Player Blocks :" + playerBlocks);
+				AddLogEntry("Player Blocks :" + playerBlocks + "  (Maximum: " + (PopulationDensity.instance.densityRatio * 15000) + ")");
 				AddLogEntry("");
-				AddLogEntry(" Resource Score : " + resourceScore);
+				AddLogEntry(" Resource Score : " + resourceScore + "  (Minimum: 200)");
 				AddLogEntry("");								
 				
 				//if NOT sufficient resources for a good start
-				if(resourceScore < 200 || woodCount < 200 || playerBlocks > 15000)
+				if(resourceScore < 200 || woodCount < 200 || playerBlocks > 15000 * PopulationDensity.instance.densityRatio)
 				{					
 					//add a new region and plan to repeat the process in that new region
 					this.dataStore.addRegion();
@@ -863,7 +889,7 @@ public class PopulationDensity extends JavaPlugin
 					{
 						AddLogEntry("Summary: Insufficient near-surface resources.");			
 					}
-					else if(playerBlocks > 15000)
+					else if(playerBlocks > 15000 * PopulationDensity.instance.densityRatio)
 					{
 						AddLogEntry("Summary: Region seems overcrowded.");			
 					}
