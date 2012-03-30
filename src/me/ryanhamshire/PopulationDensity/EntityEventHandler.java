@@ -18,13 +18,29 @@
 
 package me.ryanhamshire.PopulationDensity;
 
-import org.bukkit.Location;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityListener;
+import java.util.Random;
 
-public class EntityEventHandler extends EntityListener
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Animals;
+import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.ThrownPotion;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+
+public class EntityEventHandler implements Listener
 {
 	//when an entity (includes both dynamite and creepers) explodes...
+	@EventHandler(ignoreCancelled = true)
 	public void onEntityExplode(EntityExplodeEvent explodeEvent)
 	{		
 		Location location = explodeEvent.getLocation();
@@ -38,9 +54,77 @@ public class EntityEventHandler extends EntityListener
 		regionCenter.setY(PopulationDensity.ManagedWorld.getHighestBlockYAt(regionCenter));		
 		if(regionCenter.distanceSquared(location) < 225)  //225 = 15 * 15
 		{			
-			explodeEvent.setCancelled(true);  //TRIVIA!  All the noise and terror, none of the destruction (whew!).			
+			explodeEvent.blockList().clear(); //All the noise and terror, none of the destruction (whew!).
 		}
 		
 		//NOTE!  Why not distance?  Because distance squared is cheaper and will be good enough for this.
-	}	
+	}
+	
+	@EventHandler(ignoreCancelled = true)
+	public void onEntityDamage (EntityDamageEvent event)
+	{
+		if(!(event instanceof EntityDamageByEntityEvent)) return;
+		
+		EntityDamageByEntityEvent subEvent = (EntityDamageByEntityEvent) event;
+		
+		Player attacker = null;
+		Entity damageSource = subEvent.getDamager();
+		if(damageSource instanceof Player)
+		{
+			attacker = (Player)damageSource;
+		}
+		else if(damageSource instanceof Arrow)
+		{
+			Arrow arrow = (Arrow)damageSource;
+			if(arrow.getShooter() instanceof Player)
+			{
+				attacker = (Player)arrow.getShooter();
+			}
+		}
+		else if(damageSource instanceof ThrownPotion)
+		{
+			ThrownPotion potion = (ThrownPotion)damageSource;
+			if(potion.getShooter() instanceof Player)
+			{
+				attacker = (Player)potion.getShooter();
+			}
+		}
+		
+		if(attacker != null)
+		{
+			PopulationDensity.instance.resetIdleTimer(attacker);
+		}		
+	}
+	
+	@EventHandler(ignoreCancelled = true)
+	public void onEntitySpawn(CreatureSpawnEvent event)
+	{
+		//do nothing for non-natural spawns
+		if(event.getSpawnReason() != SpawnReason.NATURAL) return;
+		
+		Entity entity = event.getEntity();
+		if(entity instanceof Animals)
+		{
+			this.regrow(entity.getLocation().getBlock(), 8);
+		}
+	}
+	
+	private void regrow(Block center, int radius){
+        Random rnd = new Random();
+        int radius_squared = radius * radius;
+        Block toHandle;
+        for (int x = -radius; x <= radius; x++) {
+            for (int z = -radius; z <= radius; z++) {
+                toHandle =  center.getWorld().getHighestBlockAt(center.getX() + x, center.getZ() + z);
+                if (toHandle.getRelative(BlockFace.DOWN).getType() == Material.GRASS) { // Block beneath is grass
+                    if (center.getLocation().distanceSquared(toHandle.getLocation()) <= radius_squared) { // Block is in radius
+                        if (rnd.nextInt(100) < 66) {    // Random chance
+                            toHandle.setType(Material.LONG_GRASS);
+                            toHandle.setData((byte) 1);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

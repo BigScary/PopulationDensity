@@ -21,24 +21,21 @@ package me.ryanhamshire.PopulationDensity;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPlaceEvent;
 
-public class BlockEventHandler extends BlockListener 
+public class BlockEventHandler implements Listener 
 {
-	private DataStore dataStore;
-	
-	//boring typical constructor
-	public BlockEventHandler(DataStore dataStore)
-	{
-		this.dataStore = dataStore;
-	}
-	
 	//when a player breaks a block...
+	@EventHandler(ignoreCancelled = true)
 	public void onBlockBreak(BlockBreakEvent breakEvent)
 	{
 		Player player = breakEvent.getPlayer();
+		
+		PopulationDensity.instance.resetIdleTimer(player);
+		
 		Block block = breakEvent.getBlock();
 		
 		//if the player is not in managed world, do nothing (let vanilla code and other plugins do whatever)
@@ -47,14 +44,6 @@ public class BlockEventHandler extends BlockListener
 		//otherwise figure out which region that block is in
 		Location blockLocation = block.getLocation();
 		RegionCoordinates blockRegion = RegionCoordinates.fromLocation(blockLocation); 
-		
-		//if that block isn't in the player's home region and he doesn't have special permissions, block the break (instead of break the block?  comedy.)
-		if(!player.hasPermission("populationdensity.buildbreakanywhere") && !PopulationDensity.instance.buildBreakAnywhere && !blockRegion.equals(this.dataStore.getHomeRegionCoordinates(player)))
-		{
-			player.sendMessage("You can't break blocks outside your home region.  To move in here, use /movein.");
-			breakEvent.setCancelled(true);  //NO SIR!
-			return;
-		}
 		
 		//if too close to (or above) region post, send an error message
 		//note the ONLY way to edit around a region post is to have special permission
@@ -67,9 +56,13 @@ public class BlockEventHandler extends BlockListener
 	}
 	
 	//COPY PASTE!  this is practically the same as the above block break handler
+	@EventHandler(ignoreCancelled = true)
 	public void onBlockPlace(BlockPlaceEvent placeEvent)
 	{
 		Player player = placeEvent.getPlayer();
+		
+		PopulationDensity.instance.resetIdleTimer(player);
+		
 		Block block = placeEvent.getBlock();
 		
 		//if not in managed world, do nothing
@@ -77,14 +70,6 @@ public class BlockEventHandler extends BlockListener
 		
 		Location blockLocation = block.getLocation();
 		RegionCoordinates blockRegion = RegionCoordinates.fromLocation(blockLocation); 
-		
-		//if not in home region, send an error message
-		if(!player.hasPermission("populationdensity.buildbreakanywhere") && !PopulationDensity.instance.buildBreakAnywhere && !blockRegion.equals(this.dataStore.getHomeRegionCoordinates(player)))
-		{
-			player.sendMessage("You build outside your home region.  To move in here, use /movein.");
-			placeEvent.setCancelled(true);
-			return;
-		}
 		
 		//if too close to (or above) region post, send an error message
 		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion))

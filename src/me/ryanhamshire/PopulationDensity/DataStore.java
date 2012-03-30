@@ -32,19 +32,7 @@ public class DataStore
 {
 	//in-memory cache for player home region, because it's needed very frequently
 	//writes here also write immediately to file
-	private HashMap<String, RegionCoordinates> playerNameToHomeRegionCoordinatesMap = new HashMap<String, RegionCoordinates>();
-	
-	//cache of last moved date, used infrequently
-	//writes here also write immediately to file
-	private HashMap<String, Date> playerNameToLastMovedDateMap = new HashMap<String, Date>();
-	
-	//whether or not a user has been warned about the semi-permanent nature of the /movein command
-	//this isn't persisted across server sessions (lost on shutdown)
-	private HashMap<String, Boolean> playerNameToMoveInWarnedMap = new HashMap<String, Boolean>();
-	
-	//which region each user was most recently invited to join
-	//also not persisted across server sessions
-	private HashMap<String, RegionCoordinates> playerNameToInvitationMap = new HashMap<String, RegionCoordinates>();
+	private HashMap<String, PlayerData> playerNameToPlayerDataMap = new HashMap<String, PlayerData>();
 	
 	//path information, for where stuff stored on disk is well...  stored
 	private final static String dataLayerFolderPath = "plugins" + File.separator + "PopulationDensityData";
@@ -75,23 +63,12 @@ public class DataStore
 		//if no regions were loaded, create the first one
 		if(regionCount == 0)
 		{
-			RegionCoordinates newRegion = this.addRegion();
-			PopulationDensity.AddLogEntry("Created initial region \"" + this.getRegionName(newRegion) + "\" at " + newRegion.toString() + ".");
+			PopulationDensity.AddLogEntry("Please be patient while I search for a good new player starting point!");
+			PopulationDensity.AddLogEntry("This initial scan could take a while, especially for worlds where players have already been building.");
+			this.addRegion();			
 		}
 		
 		PopulationDensity.AddLogEntry("Open region: \"" + this.getRegionName(this.getOpenRegion()) + "\" at " + this.getOpenRegion().toString() + ".");		
-	}
-	
-	//remembers an invitation
-	public void setInvitation(String playerName, RegionCoordinates region)
-	{
-		this.playerNameToInvitationMap.put(playerName, region);
-	}
-	
-	//recalls an invitation
-	public RegionCoordinates getInvitation(Player player)
-	{
-		return playerNameToInvitationMap.get(player.getName());
 	}
 	
 	//used in the spiraling code below (see findNextRegion())
@@ -152,157 +129,102 @@ public class DataStore
 	}
 	
 	//picks a region at random (sort of)
-	public RegionCoordinates getRandomRegion()
+	public RegionCoordinates getRandomRegion(RegionCoordinates regionToAvoid)
 	{
+		if(this.regionCount < 2) return null;
+		
 		//initialize random number generator with a seed based the current time
 		Random randomGenerator = new Random();
 		
-		//flip a coin (0-1)
-		int randomNumber = randomGenerator.nextInt(2);
+		//get a list of all the files in the region data folder
+		//some of them are named after region names, others region coordinates
+		File regionDataFolder = new File(regionDataFolderPath);
+		File [] files = regionDataFolder.listFiles();			
+		ArrayList<RegionCoordinates> regions = new ArrayList<RegionCoordinates>();
 		
-		//if heads, choose randomly from the home regions of online players
-		//thinking: these are more likely to be populated than other regions
-		if(randomNumber == 0)
-		{
-			//get a list of players
-			Player [] players = PopulationDensity.instance.getServer().getOnlinePlayers();
-			
-			//pick one at random and return his home region
-			int randomPlayer = randomGenerator.nextInt(players.length);			
-			return this.getHomeRegionCoordinates(players[randomPlayer]);
-		}
-		
-		//if tails, pick any region
-		else
-		{
-			//get a list of all the files in the region data folder
-			//some of them are named after region names, others region coordinates
-			File regionDataFolder = new File(regionDataFolderPath);
-			File [] files = regionDataFolder.listFiles();			
-			ArrayList<RegionCoordinates> regions = new ArrayList<RegionCoordinates>();
-			
-			for(int i = 0; i < files.length; i++)
-			{				
-				if(files[i].isFile())  //avoid any folders
+		for(int i = 0; i < files.length; i++)
+		{				
+			if(files[i].isFile())  //avoid any folders
+			{
+				try
 				{
-					try
+					//if the filename converts to region coordinates, add that region to the list of defined regions
+					//(this constructor throws an exception if it can't do the conversion)
+					RegionCoordinates regionCoordinates = new RegionCoordinates(files[i].getName());
+					if(!regionCoordinates.equals(regionToAvoid))
 					{
-						//if the filename converts to region coordinates, add that region to the list of defined regions
-						//(this constructor throws an exception if it can't do the conversion)
-						RegionCoordinates regionCoordinates = new RegionCoordinates(files[i].getName());
 						regions.add(regionCoordinates);
 					}
-					
-					//catch for files named after region names
-					catch(Exception e){ }					
 				}
+				
+				//catch for files named after region names
+				catch(Exception e){ }					
 			}
-			
-			//pick one of those regions at random
-			int randomRegion = randomGenerator.nextInt(regions.size());			
-			return regions.get(randomRegion);			
-		}
-	}
-	
-	//notes that a specific player has been warned about the one week cooldown on changing home regions
-	public void setWarnedAboutMoveIn(Player player)
-	{
-		this.playerNameToMoveInWarnedMap.put(player.getName(), new Boolean(true));
-	}
-	
-	//retrieves the above data
-	public boolean getWarnedAboutMoveIn(Player player)
-	{
-		return this.playerNameToMoveInWarnedMap.containsKey(player.getName());
-	}	
-		
-	//sets a player's home region, both in memory and on disk
-	public void setHomeRegionCoordinates(Player player, RegionCoordinates newHomeCoordinates)
-	{
-		//save to file
-		this.savePlayer(player, newHomeCoordinates, this.playerNameToLastMovedDateMap.get(player.getName()));
-	}
-	
-	//sets a player's last moved date, both in memory and on disk
-	public void setLastMovedDate(Player player, Date newLastMovedDate)
-	{
-		this.savePlayer(player, this.playerNameToHomeRegionCoordinatesMap.get(player.getName()), newLastMovedDate);
-	}
-	
-	//helper for above - does the work of actually writing to memory and files
-	private void savePlayer(Player player, RegionCoordinates homeRegionCoordinates, Date lastMovedDate)
-	{
-		//if last moved date isn't available (this is the case for new players)
-		if(lastMovedDate == null)
-		{
-			//set it to about 10 days ago.  this allows new players to move immediately after joining
-			Calendar calendar = Calendar.getInstance();
-			calendar.add(Calendar.DAY_OF_MONTH, -10);
-			lastMovedDate = calendar.getTime();
 		}
 		
-		//if home region isn't available (case for new players), make it the open region
-		if(homeRegionCoordinates == null)
-		{
-			homeRegionCoordinates = this.getOpenRegion();
-		}
-		
+		//pick one of those regions at random
+		int randomRegion = randomGenerator.nextInt(regions.size());			
+		return regions.get(randomRegion);			
+	}
+	
+	public void savePlayerData(OfflinePlayer player, PlayerData data)
+	{
 		//save that data in memory
-		this.playerNameToHomeRegionCoordinatesMap.put(player.getName(), homeRegionCoordinates);
-		this.playerNameToLastMovedDateMap.put(player.getName(), lastMovedDate);
+		this.playerNameToPlayerDataMap.put(player.getName(), data);
 		
+		BufferedWriter outStream = null;
 		try
 		{
 			//open the player's file
 			File playerFile = new File(playerDataFolderPath + File.separator + player.getName());
 			playerFile.createNewFile();
-			BufferedWriter outStream = new BufferedWriter(new FileWriter(playerFile));
+			outStream = new BufferedWriter(new FileWriter(playerFile));
 			
 			//first line is home region coordinates
-			outStream.write(homeRegionCoordinates.toString());
+			outStream.write(data.homeRegion.toString());
 			outStream.newLine();
 			
-			//second line is last moved date,
+			//second line is last disconnection date,
 			//note use of the ROOT locale to avoid problems related to regional settings on the server being updated
-			DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.ROOT);			
-			outStream.write(dateFormat.format(lastMovedDate));
+			DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL, Locale.ROOT);			
+			outStream.write(dateFormat.format(data.lastDisconnect));
+			outStream.newLine();
 			
-			//close the file
-			outStream.close();			
+			//third line is login priority
+			outStream.write(String.valueOf(data.loginPriority));
+			outStream.newLine();
 		}		
 		
 		//if any problem, log it
 		catch(Exception e)
 		{
 			PopulationDensity.AddLogEntry("PopulationDensity: Unexpected exception saving data for player \"" + player.getName() + "\": " + e.getMessage());
+		}		
+		
+		try
+		{
+			//close the file
+			if(outStream != null) outStream.close();
 		}
+		catch(IOException exception){}
 	}
 	
-	//home region coordinates are used mostly by block-related code to check whether or not the player is allowed to place or break a block
-	public RegionCoordinates getHomeRegionCoordinates(Player player)
+	public PlayerData getPlayerData(OfflinePlayer player)
 	{
 		//first, check the in-memory cache
-		RegionCoordinates region = this.playerNameToHomeRegionCoordinatesMap.get(player.getName());
-		if(region != null) return region;
+		PlayerData data = this.playerNameToPlayerDataMap.get(player.getName());
+		
+		if(data != null) return data;
 		
 		//if not there, try to load the player from file		
 		loadPlayerDataFromFile(player.getName());
 		
-		//check again (may return null, if there wasn't any player data to load from file)
-		return this.playerNameToHomeRegionCoordinatesMap.get(player.getName());				
-	}
-	
-	public Date getLastMovedDate(Player player)
-	{
-		//first, check the in-memory cache
-		Date date = this.playerNameToLastMovedDateMap.get(player.getName());
-		if(date != null) return date;
+		//check again
+		data = this.playerNameToPlayerDataMap.get(player.getName());
 		
-		//if not there, try to load the player from file		
-		loadPlayerDataFromFile(player.getName());
+		if(data != null) return data;
 		
-		//check again (may return null, if there wasn't any player data to load from file)
-		return this.playerNameToLastMovedDateMap.get(player.getName());
+		return new PlayerData();
 	}
 	
 	private void loadPlayerDataFromFile(String playerName)
@@ -310,28 +232,57 @@ public class DataStore
 		//load player data into memory		
 		File playerFile = new File(playerDataFolderPath + File.separator + playerName);
 		
+		BufferedReader inStream = null;
 		try
 		{					
-			BufferedReader inStream = new BufferedReader(new FileReader(playerFile.getAbsolutePath()));
-			
+			PlayerData playerData = new PlayerData();
+			inStream = new BufferedReader(new FileReader(playerFile.getAbsolutePath()));
+						
 			//first line is home region coordinates
 			String homeRegionCoordinatesString = inStream.readLine();
 			
-			//second line is date of last region move-in
-			String lastMovedString = inStream.readLine();
+			//second line is date of last disconnection
+			String lastDisconnectedString = inStream.readLine();
 			
-			inStream.close();
-			  
+			//third line is login priority
+			String rankString = inStream.readLine(); 
+			
 			//convert string representation of home coordinates to a proper object
 			RegionCoordinates homeRegionCoordinates = new RegionCoordinates(homeRegionCoordinatesString);
+			playerData.homeRegion = homeRegionCoordinates;
 			  
-			//parse that date string
-			DateFormat dateFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.ROOT);
-			Date lastMovedDate = dateFormat.parse(lastMovedString);
+			//parse the last disconnect date string
+			try
+			{
+				DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL, Locale.ROOT);
+				Date lastDisconnect = dateFormat.parse(lastDisconnectedString);
+				playerData.lastDisconnect = lastDisconnect;
+			}
+			catch(Exception e)
+			{
+				playerData.lastDisconnect = Calendar.getInstance().getTime();
+			}
+			
+			//parse priority string
+			if(rankString == null || rankString.isEmpty())
+			{
+				playerData.loginPriority = 0;
+			}
+			
+			else
+			{
+				try
+				{
+					playerData.loginPriority = Integer.parseInt(rankString);
+				}
+				catch(Exception e)
+				{
+					playerData.loginPriority = 0;
+				}			
+			}
 			  
-			//shove both into memory for quick access
-			this.playerNameToHomeRegionCoordinatesMap.put(playerName, homeRegionCoordinates);
-			this.playerNameToLastMovedDateMap.put(playerName, lastMovedDate);
+			//shove into memory for quick access
+			this.playerNameToPlayerDataMap.put(playerName, playerData);
 		}
 		
 		//if the file isn't found, just don't do anything (probably a new-to-server player)
@@ -345,6 +296,12 @@ public class DataStore
 		{
 			 PopulationDensity.AddLogEntry("Unable to load data for player \"" + playerName + "\": " + e.getMessage());			 
 		}
+		
+		try
+		{
+			if(inStream != null) inStream.close();
+		}
+		catch(IOException exception){}		
 	}
 	
 	//adds a new region, assigning it a name and updating local variables accordingly
@@ -372,12 +329,13 @@ public class DataStore
 		
 		//"create" the region by saving necessary data to disk
 		//(region names to coordinates mappings aren't kept in memory because they're less often needed, and this way we keep it simple) 
+		BufferedWriter outStream = null;
 		try
 		{
 			//coordinates file contains the region's name
 			File regionNameFile = new File(regionDataFolderPath + File.separator + newRegionName);
 			regionNameFile.createNewFile();
-			BufferedWriter outStream = new BufferedWriter(new FileWriter(regionNameFile));
+			outStream = new BufferedWriter(new FileWriter(regionNameFile));
 			outStream.write(this.nextRegionCoordinates.toString());
 			outStream.close();
 			
@@ -386,7 +344,6 @@ public class DataStore
 			regionCoordinatesFile.createNewFile();
 			outStream = new BufferedWriter(new FileWriter(regionCoordinatesFile));
 			outStream.write(newRegionName);
-			outStream.close();		
 		}
 		
 		//in case of any problem, log the details
@@ -396,11 +353,23 @@ public class DataStore
 			return null;
 		}
 		
+		try
+		{
+			if(outStream != null) outStream.close();		
+		}
+		catch(IOException exception){}
+		
 		//find the next region in the spiral (updates this.openRegionCoordinates and this.nextRegionCoordinates)
 		this.findNextRegion();
 		
 		//build a signpost at the center of the newly opened region
 		this.AddRegionPost(this.openRegionCoordinates, true);
+		
+		PopulationDensity.instance.getServer().broadcastMessage("Region \"" + PopulationDensity.capitalize(newRegionName) + "\" is now open and accepting new residents!");
+		if(PopulationDensity.instance.allowTeleportation)
+		{
+			PopulationDensity.instance.getServer().broadcastMessage("Use /NewestRegion to visit, and /HomeRegion to return home!");
+		}
 		
 		return this.openRegionCoordinates;
 	}
@@ -416,16 +385,15 @@ public class DataStore
 	{
 		File regionCoordinatesFile;
 		
+		BufferedReader inStream = null;
+		String regionName = null;
 		try
 		{
 			regionCoordinatesFile = new File(regionDataFolderPath + File.separator + coordinates.toString());			
-			BufferedReader inStream = new BufferedReader(new FileReader(regionCoordinatesFile));
+			inStream = new BufferedReader(new FileReader(regionCoordinatesFile));
 			
 			//only one line in the file, the region name
-			String regionName = inStream.readLine();
-			
-			inStream.close();
-			return regionName;
+			regionName = inStream.readLine();
 		}
 		
 		//if the file doesn't exist, the region hasn't been named yet, so return null
@@ -440,6 +408,14 @@ public class DataStore
 			PopulationDensity.AddLogEntry("Unable to read region data: " + e.getMessage());
 			return null;
 		}
+		
+		try
+		{
+			if(inStream != null) inStream.close();
+		}
+		catch(IOException exception){}
+		
+		return regionName;
 	}
 	
 	//similar to above, goes to disk to get the coordinates that go with a region name
@@ -447,29 +423,35 @@ public class DataStore
 	{
 		File regionNameFile = new File(regionDataFolderPath + File.separator + regionName);
 		
+		BufferedReader inStream = null;
+		RegionCoordinates coordinates = null;
 		try
 		{
-			BufferedReader inStream = new BufferedReader(new FileReader(regionNameFile));
+			inStream = new BufferedReader(new FileReader(regionNameFile));
 			
 			//only one line in the file, the coordinates
 			String coordinatesString = inStream.readLine();
 			
 			inStream.close();			
-			return new RegionCoordinates(coordinatesString);
+			coordinates = new RegionCoordinates(coordinatesString);
 		}
 		
 		//file not found means there's no region with a matching name, so return null
-		catch(FileNotFoundException e)
-		{
-			return null;
-		}
+		catch(FileNotFoundException e) { }
 		
-		//if any other problems, log the details
+		//if any other problems, log the details and then return null
 		catch(Exception e)
 		{
-			PopulationDensity.AddLogEntry("Unable to read region data at " + regionNameFile.getAbsolutePath() + ": " + e.getMessage());
-			return null;
+			PopulationDensity.AddLogEntry("Unable to read region data at " + regionNameFile.getAbsolutePath() + ": " + e.getMessage());			
 		}
+		
+		try
+		{
+			if(inStream != null) inStream.close();
+		}
+		catch(IOException exception) {}
+		
+		return coordinates;
 	}
 	
 	//actually edits the world to create a region post at the center of the specified region	
@@ -486,8 +468,8 @@ public class DataStore
 		
 		//sink lower until we find something solid
 		//also ignore glowstone, in case there's already a post here!
-		//race condition issue: chunks say they're loaded when they're not.  if it looks like the chunk isn't loaded, try again (up to three times)
-		int retriesLeft = 3;
+		//race condition issue: chunks say they're loaded when they're not.  if it looks like the chunk isn't loaded, try again (up to five times)
+		int retriesLeft = 5;
 		boolean tryAgain;
 		do
 		{
@@ -521,12 +503,18 @@ public class DataStore
 			}
 		}while(tryAgain);
 				
-		//build a stone platform
+		//clear signs from the area, this ensures signs don't drop as items 
+		//when the blocks they're attached to are destroyed in the next step
 		for(int x1 = x - 2; x1 <= x + 2; x1++)
 		{
 			for(int z1 = z - 2; z1 <= z + 2; z1++)
 			{
-				PopulationDensity.ManagedWorld.getBlockAt(x1, y + 1, z1).setType(Material.SMOOTH_BRICK);
+				for(int y1 = y + 2; y1 <= y + 15; y1++)
+				{
+					Block block = PopulationDensity.ManagedWorld.getBlockAt(x1, y1, z1);
+					if(block.getType() == Material.SIGN_POST || block.getType() == Material.SIGN || block.getType() == Material.WALL_SIGN)
+						block.setType(Material.AIR);					
+				}
 			}
 		}
 		
@@ -540,12 +528,21 @@ public class DataStore
 					PopulationDensity.ManagedWorld.getBlockAt(x1, y1, z1).setType(Material.AIR);
 				}
 			}
-		}
+		}	
 		
 		//build a glowpost in the center
-		for(int y1 = y + 1; y1 <= y + 4; y1++)
+		for(int y1 = y; y1 <= y + 3; y1++)
 		{
 			PopulationDensity.ManagedWorld.getBlockAt(x, y1, z).setType(Material.GLOWSTONE);
+		}
+		
+		//build a stone platform
+		for(int x1 = x - 2; x1 <= x + 2; x1++)
+		{
+			for(int z1 = z - 2; z1 <= z + 2; z1++)
+			{
+				PopulationDensity.ManagedWorld.getBlockAt(x1, y, z1).setType(Material.SMOOTH_BRICK);
+			}
 		}
 		
 		//if the region has a name, build a sign on top
@@ -553,11 +550,12 @@ public class DataStore
 		if(regionName != null)
 		{		
 			regionName = PopulationDensity.capitalize(regionName);
-			Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 5, z);
+			Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 4, z);
 			block.setType(Material.SIGN_POST);
 			
 			Sign sign = (Sign)block.getState();
-			sign.setLine(1, regionName);
+			sign.setLine(1, "You are in:");
+			sign.setLine(2, regionName);
 			sign.update();
 		}
 		
@@ -566,7 +564,7 @@ public class DataStore
 		if(regionName == null) regionName = "Wilderness";
 		regionName = PopulationDensity.capitalize(regionName);
 		
-		Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z - 1);
+		Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 2, z - 1);
 		block.setType(Material.WALL_SIGN);
 		
 		Sign sign = (Sign)block.getState();
@@ -584,15 +582,15 @@ public class DataStore
 		//if a city world is defined, also add a /cityregion sign on the east side of the post
 		if(PopulationDensity.CityWorld != null)
 		{
-			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 4, z - 1);
+			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z - 1);
 			block.setType(Material.WALL_SIGN);
 			
 			sign = (Sign)block.getState();
 			
 			sign.setLine(0, "Visit the City:");
-			sign.setLine(1, "/cityregion");
+			sign.setLine(1, "/CityRegion");
 			sign.setLine(2, "Return Home:");
-			sign.setLine(3, "/homeregion");
+			sign.setLine(3, "/HomeRegion");
 			
 			signData = (org.bukkit.material.Sign)sign.getData();
 			signData.setFacingDirection(BlockFace.EAST);
@@ -606,7 +604,7 @@ public class DataStore
 		if(regionName == null) regionName = "Wilderness";
 		regionName = PopulationDensity.capitalize(regionName);
 		
-		block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 3, z);
+		block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 2, z);
 		block.setType(Material.WALL_SIGN);
 		
 		sign = (Sign)block.getState();
@@ -621,16 +619,18 @@ public class DataStore
 		
 		sign.update();
 		
-		//if teleportation is enabled, also add a sign facing north for /visitregion
+		//if teleportation is enabled, also add a sign facing north for /visitregion and /invitetoregion
 		if(PopulationDensity.instance.allowTeleportation)
 		{
-			block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 4, z);
+			block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 3, z);
 			block.setType(Material.WALL_SIGN);
 			
 			sign = (Sign)block.getState();
 			
-			sign.setLine(1, "Visit Friends:");
-			sign.setLine(2, "/visitregion");
+			sign.setLine(0, "Visit Friends:");
+			sign.setLine(1, "/VisitRegion");
+			sign.setLine(2, "Invite Friends:");
+			sign.setLine(3, "/InviteToRegion");
 			
 			signData = (org.bukkit.material.Sign)sign.getData();
 			signData.setFacingDirection(BlockFace.NORTH);
@@ -644,7 +644,7 @@ public class DataStore
 		if(regionName == null) regionName = "Wilderness";
 		regionName = PopulationDensity.capitalize(regionName);
 		
-		block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 3, z);
+		block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 2, z);
 		block.setType(Material.WALL_SIGN);
 		
 		sign = (Sign)block.getState();
@@ -662,13 +662,15 @@ public class DataStore
 		//if teleportation is enabled, also add a sign facing south for /homeregion
 		if(PopulationDensity.instance.allowTeleportation)
 		{
-			block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 4, z);
+			block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 3, z);
 			block.setType(Material.WALL_SIGN);
 			
 			sign = (Sign)block.getState();
 			
-			sign.setLine(1, "Return Home:");
-			sign.setLine(2, "/homeregion");
+			sign.setLine(0, "Set Your Home:");
+			sign.setLine(1, "/MoveIn");
+			sign.setLine(2, "Return Home:");
+			sign.setLine(3, "/HomeRegion");
 			
 			signData = (org.bukkit.material.Sign)sign.getData();
 			signData.setFacingDirection(BlockFace.SOUTH);
@@ -682,7 +684,7 @@ public class DataStore
 		if(regionName == null) regionName = "Wilderness";
 		regionName = PopulationDensity.capitalize(regionName);
 		
-		block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z + 1);
+		block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 2, z + 1);
 		block.setType(Material.WALL_SIGN);
 		
 		sign = (Sign)block.getState();
@@ -700,14 +702,14 @@ public class DataStore
 		//if teleportation is enabled, also add a sign facing west for /newestregion and /randomregion
 		if(PopulationDensity.instance.allowTeleportation)
 		{
-			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 4, z + 1);
+			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z + 1);
 			block.setType(Material.WALL_SIGN);
 			
 			sign = (Sign)block.getState();
 			
 			sign.setLine(0, "Adventure!");
-			sign.setLine(2, "/newestregion");
-			sign.setLine(3, "/randomregion");
+			sign.setLine(2, "/NewestRegion");
+			sign.setLine(3, "/RandomRegion");
 			
 			signData = (org.bukkit.material.Sign)sign.getData();
 			signData.setFacingDirection(BlockFace.WEST);
@@ -723,6 +725,11 @@ public class DataStore
 			this.AddRegionPost(new RegionCoordinates(region.x, region.z - 1), false);
 			this.AddRegionPost(new RegionCoordinates(region.x, region.z + 1), false);
 		}
+	}
+	
+	public void clearCachedPlayerData(Player player)
+	{
+		this.playerNameToPlayerDataMap.remove(player.getName());		
 	}
 	
 	//list of region names to use
