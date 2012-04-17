@@ -194,8 +194,7 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		if(cmd.getName().equalsIgnoreCase("visitregion") && player != null)
-		{
-			
+		{			
 			if(args.length < 1) return false;
 			
 			//find the specified region, and send an error message if it's not found
@@ -242,6 +241,56 @@ public class PopulationDensity extends JavaPlugin
 			else
 			{
 				player.sendMessage("You're in the " + capitalize(regionName) + " region.");				
+			}
+			
+			return true;
+		}
+		
+		else if(cmd.getName().equalsIgnoreCase("nameregion") && player != null)
+		{
+			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
+			if(currentRegion == null)
+			{
+				player.sendMessage("You're not in a region!");
+				return true;
+			}
+			
+			String regionName = this.dataStore.getRegionName(currentRegion);
+			if(regionName != null)
+			{
+				player.sendMessage("This region already has a name.");
+			}
+			else
+			{
+				//validate argument
+				if(args.length < 1) return false;
+				
+				String name = args[0];
+				
+				if(name.length() > 10)
+				{
+					player.sendMessage("Region names must be at most 10 letters long.");
+					return true;
+				}
+				
+				for(int i = 0; i < name.length(); i++)
+				{
+					char c = name.charAt(i);
+					if(Character.isWhitespace(c))
+					{
+						player.sendMessage("Region names must not include spaces.");
+						return true;
+					}
+					
+					if(!Character.isLetter(c))
+					{
+						player.sendMessage("Region names may only include letters.");
+						return true;
+					}					
+				}
+				
+				//name region
+				this.dataStore.nameRegion(currentRegion, name);
 			}
 			
 			return true;

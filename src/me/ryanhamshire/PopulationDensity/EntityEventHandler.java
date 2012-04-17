@@ -115,12 +115,13 @@ public class EntityEventHandler implements Listener
         Block toHandle;
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
-                toHandle =  center.getWorld().getHighestBlockAt(center.getX() + x, center.getZ() + z);
-                if (toHandle.getRelative(BlockFace.DOWN).getType() == Material.GRASS) { // Block beneath is grass
+                toHandle = center.getWorld().getBlockAt(center.getX() + x, center.getWorld().getMaxHeight() - 1, center.getZ() + z);
+                while(toHandle.getType() == Material.AIR) toHandle = toHandle.getRelative(BlockFace.DOWN);
+                if (toHandle.getType() == Material.GRASS) { // Block is grass
                     if (center.getLocation().distanceSquared(toHandle.getLocation()) <= radius_squared) { // Block is in radius
                         if (rnd.nextInt(100) < 66) {    // Random chance
-                            toHandle.setType(Material.LONG_GRASS);
-                            toHandle.setData((byte) 1);
+                            toHandle.getRelative(BlockFace.UP).setType(Material.LONG_GRASS);
+                            toHandle.getRelative(BlockFace.UP).setData((byte) 1);  //live grass instead of dead shrub
                         }
                     }
                 }

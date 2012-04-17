@@ -58,7 +58,6 @@ public class DataStore
 		
 		//study region data and initialize both this.openRegionCoordinates and this.nextRegionCoordinates
 		this.regionCount = this.findNextRegion();
-		PopulationDensity.AddLogEntry(regionCount + " total regions loaded.");
 		
 		//if no regions were loaded, create the first one
 		if(regionCount == 0)
@@ -327,43 +326,10 @@ public class DataStore
 			
 		}while(this.getRegionCoordinates(newRegionName) != null);
 		
-		//"create" the region by saving necessary data to disk
-		//(region names to coordinates mappings aren't kept in memory because they're less often needed, and this way we keep it simple) 
-		BufferedWriter outStream = null;
-		try
-		{
-			//coordinates file contains the region's name
-			File regionNameFile = new File(regionDataFolderPath + File.separator + newRegionName);
-			regionNameFile.createNewFile();
-			outStream = new BufferedWriter(new FileWriter(regionNameFile));
-			outStream.write(this.nextRegionCoordinates.toString());
-			outStream.close();
-			
-			//name file contains the coordinates
-			File regionCoordinatesFile = new File(regionDataFolderPath + File.separator + this.nextRegionCoordinates.toString());
-			regionCoordinatesFile.createNewFile();
-			outStream = new BufferedWriter(new FileWriter(regionCoordinatesFile));
-			outStream.write(newRegionName);
-		}
-		
-		//in case of any problem, log the details
-		catch(Exception e)
-		{
-			PopulationDensity.AddLogEntry("Unexpected Exception: " + e.getMessage());
-			return null;
-		}
-		
-		try
-		{
-			if(outStream != null) outStream.close();		
-		}
-		catch(IOException exception){}
+		this.nameRegion(this.nextRegionCoordinates, newRegionName);		
 		
 		//find the next region in the spiral (updates this.openRegionCoordinates and this.nextRegionCoordinates)
 		this.findNextRegion();
-		
-		//build a signpost at the center of the newly opened region
-		this.AddRegionPost(this.openRegionCoordinates, true);
 		
 		PopulationDensity.instance.getServer().broadcastMessage("Region \"" + PopulationDensity.capitalize(newRegionName) + "\" is now open and accepting new residents!");
 		if(PopulationDensity.instance.allowTeleportation)
@@ -374,6 +340,47 @@ public class DataStore
 		return this.openRegionCoordinates;
 	}
 	
+	void nameRegion(RegionCoordinates coords, String name) 
+	{
+		//region names are always lowercase
+		name = name.toLowerCase();
+		
+		//"create" the region by saving necessary data to disk
+		//(region names to coordinates mappings aren't kept in memory because they're less often needed, and this way we keep it simple) 
+		BufferedWriter outStream = null;
+		try
+		{
+			//coordinates file contains the region's name
+			File regionNameFile = new File(regionDataFolderPath + File.separator + name);
+			regionNameFile.createNewFile();
+			outStream = new BufferedWriter(new FileWriter(regionNameFile));
+			outStream.write(coords.toString());
+			outStream.close();
+			
+			//name file contains the coordinates
+			File regionCoordinatesFile = new File(regionDataFolderPath + File.separator + coords.toString());
+			regionCoordinatesFile.createNewFile();
+			outStream = new BufferedWriter(new FileWriter(regionCoordinatesFile));
+			outStream.write(name);
+			outStream.close();
+			
+			//build a signpost at the center of the newly named region
+			this.AddRegionPost(coords, true);			
+		}
+		
+		//in case of any problem, log the details
+		catch(Exception e)
+		{
+			PopulationDensity.AddLogEntry("Unexpected Exception: " + e.getMessage());
+		}
+		
+		try
+		{
+			if(outStream != null) outStream.close();		
+		}
+		catch(IOException exception){}		
+	}
+
 	//retrieves the open region's coordinates
 	public RegionCoordinates getOpenRegion()
 	{
@@ -486,13 +493,14 @@ public class DataStore
 			while(	y > 1 && (
 					blockType == Material.AIR 		|| 
 					blockType == Material.LEAVES 	|| 
-					blockType == Material.GRASS		||
+					blockType == Material.LONG_GRASS||
+					blockType == Material.LOG       ||
 					blockType == Material.GLOWSTONE ||
 					blockType == Material.SIGN_POST
 					));
 			
 			//if final y value is extremely small, it's probably wrong
-			if(y < 10 && retriesLeft-- > 0)
+			if(y < 5 && retriesLeft-- > 0)
 			{
 				tryAgain = true;
 				try
@@ -523,7 +531,7 @@ public class DataStore
 		{
 			for(int z1 = z - 2; z1 <= z + 2; z1++)
 			{
-				for(int y1 = y + 2; y1 <= y + 15; y1++)
+				for(int y1 = y + 1; y1 < PopulationDensity.ManagedWorld.getMaxHeight(); y1++)
 				{
 					PopulationDensity.ManagedWorld.getBlockAt(x1, y1, z1).setType(Material.AIR);
 				}
@@ -555,7 +563,7 @@ public class DataStore
 			
 			Sign sign = (Sign)block.getState();
 			sign.setLine(1, "You are in:");
-			sign.setLine(2, regionName);
+			sign.setLine(2, PopulationDensity.capitalize(regionName));
 			sign.update();
 		}
 		

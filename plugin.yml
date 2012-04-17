@@ -1,6 +1,6 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
-version: 1.8
+version: 2.7.1
 commands:
    visitregion:
       description: Teleports the player to a specified region.
@@ -11,6 +11,13 @@ commands:
    movein:
       description: Updates a user's home region to his current region.
       usage: /movein
+   nameregion:
+      description: Names a wilderness region.
+      usage: /nameregion <name>
+      permission: populationdensity.addregion
+   whichregion:
+      description: Tells the player which region he's in.
+      usage: /WhichRegion
    newestregion:
       description: Teleports the player to the newest region.
       usage: /newestregion
@@ -24,22 +31,36 @@ commands:
       description: Closes the current open region and opens a new one.
       usage: /addregion
       permission: populationdensity.addregion
+   scanregion:
+      description: Scans the region you're standing in for resources.
+      usage: /ScanRegion
+      permission: populationdensity.addregion
+   addregionpost:
+      description: Generates a region post at the center of the current region.
+      usage: /AddRegionPost
+      permission: populationdensity.addregion
    randomregion:
       description: Teleports the player to a random region.
       usage: /randomregion
    invitetoregion:
       description: Invites a player to move into your home region.
-      usage: /invitetoregion <player name>
+      usage: /InviteToRegion <player name>
    acceptregioninvite:
       description: Accepts an invitation to move into another player's home region.
       usage: /acceptregioninvite       
+   loginpriority:
+      description: Sets the login priority for a player.
+      usage: /LoginPriority <player name> <priority, 0 - 100>
+      permission: populationdensity.setloginpriority
 permissions:
     populationdensity.*:
-        description: Grants region-teleportation, region-edit, and add-region privileges.
+        description: Grants all administrative privileges.
         children:
             populationdensity.buildbreakanywhere: true
             populationdensity.teleportanywhere: true
             populationdensity.addregion: true
+            populationdensity.idle: true
+            populationdensity.adminlogin: true
     populationdensity.buildbreakanywhere:
         description: Grants permission to edit anywhere in the managed world, including region posts.
         default: op
@@ -49,3 +70,18 @@ permissions:
     populationdensity.addregion:
         description: Grants permission to the /addregion command.
         default: op    
+    populationdensity.idle:
+        description: Grants a player permission to idle (without being kicked).
+        default: op
+    populationdensity.adminlogin:
+        description: Grants a player permission to fill a player slot reserved for administrators.
+        default: op
+    populationdensity.prioritylogin:
+        description: Raises a player's login priority level to 25 of 100.
+        default: false
+    populationdensity.elitelogin:
+        description: Raises a player's login priority level to 50 of 100.
+        default: false
+    populationdensity.setloginpriority:
+        description: Grants a player permission to use /SetLoginPriority.
+        default: op
