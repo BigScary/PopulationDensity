@@ -1,6 +1,7 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
-version: 2.7.1
+softdepend: [Multiverse-Core]
+version: 3.1
 commands:
    visitregion:
       description: Teleports the player to a specified region.
@@ -61,6 +62,10 @@ permissions:
             populationdensity.addregion: true
             populationdensity.idle: true
             populationdensity.adminlogin: true
+            populationdensity.setloginpriority: true
+    populationdensity.newestregion:
+        description: Grants permission to use /NewestRegion.
+        default: op
     populationdensity.buildbreakanywhere:
         description: Grants permission to edit anywhere in the managed world, including region posts.
         default: op
