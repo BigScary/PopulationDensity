@@ -216,18 +216,14 @@ public class PlayerEventHandler implements Listener {
 	// when a player successfully joins the server...
 	@EventHandler(ignoreCancelled = true)
 	public void onPlayerJoin(PlayerJoinEvent event) {
+		
 		Player joiningPlayer = event.getPlayer();
-
+		
 		PopulationDensity.instance.resetIdleTimer(joiningPlayer);
-	}
-
-	// when a player moves...
-	@EventHandler(ignoreCancelled = true)
-	public void onPlayerMove(PlayerMoveEvent event) {
-		Player player = event.getPlayer();
-		PlayerData playerData = this.dataStore.getPlayerData(player);
+		
+		PlayerData playerData = this.dataStore.getPlayerData(joiningPlayer);
 		if (playerData.lastObservedLocation == null) {
-			playerData.lastObservedLocation = player.getLocation();
+			playerData.lastObservedLocation = joiningPlayer.getLocation();
 		}
 
 		// if the player doesn't have a home region yet (he hasn't logged in
@@ -237,22 +233,23 @@ public class PlayerEventHandler implements Listener {
 			// his home region is the open region
 			RegionCoordinates openRegion = this.dataStore.getOpenRegion();
 			playerData.homeRegion = openRegion;
-			this.dataStore.savePlayerData(player, playerData);
+			this.dataStore.savePlayerData(joiningPlayer, playerData);
 			PopulationDensity.AddLogEntry("Assigned new player "
-					+ player.getName() + " to region "
+					+ joiningPlayer.getName() + " to region "
 					+ this.dataStore.getRegionName(openRegion) + " at "
 					+ openRegion.toString() + ".");
 
 			// entirely new players who've not visited the server before will
 			// spawn at the default spawn
-			// if configured as such, teleport him there right away
+			// if configured as such, teleport him there in a few seconds (this delay avoids a bukkit issue with teleporting during login)
 			// because the world takes a while to load after login, he'll never
 			// know he was teleported
-			if (PopulationDensity.instance.newPlayersSpawnInHomeRegion
-					&& player.getLocation().distanceSquared(
-							player.getWorld().getSpawnLocation()) < 625) {
-				PopulationDensity.instance.TeleportPlayer(player, openRegion,
-						true);
+			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion);
+			PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
+			if (PopulationDensity.instance.newPlayersSpawnInHomeRegion && joiningPlayer.getLocation().distanceSquared(joiningPlayer.getWorld().getSpawnLocation()) < 625) 
+			{
+				PlaceNewPlayerTask task = new PlaceNewPlayerTask(joiningPlayer, playerData.homeRegion);
+				PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 20L * 3 /*about 3 seconds*/);
 			}
 
 			return;

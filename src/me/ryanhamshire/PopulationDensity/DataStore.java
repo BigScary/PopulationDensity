@@ -331,12 +331,6 @@ public class DataStore
 		//find the next region in the spiral (updates this.openRegionCoordinates and this.nextRegionCoordinates)
 		this.findNextRegion();
 		
-		PopulationDensity.instance.getServer().broadcastMessage("Region \"" + PopulationDensity.capitalize(newRegionName) + "\" is now open and accepting new residents!");
-		if(PopulationDensity.instance.allowTeleportation)
-		{
-			PopulationDensity.instance.getServer().broadcastMessage("Use /NewestRegion to visit, and /HomeRegion to return home!");
-		}
-		
 		return this.openRegionCoordinates;
 	}
 	
@@ -464,6 +458,9 @@ public class DataStore
 	//actually edits the world to create a region post at the center of the specified region	
 	public void AddRegionPost(RegionCoordinates region, boolean updateNeighboringRegions)
 	{
+		//if region post building is disabled, don't do anything
+		if(!PopulationDensity.instance.buildRegionPosts) return;
+		
 		//find the center
 		Location regionCenter = PopulationDensity.getRegionCenter(region);		
 		int x = regionCenter.getBlockX();
@@ -485,6 +482,7 @@ public class DataStore
 			//find the highest block.  could be the surface, a tree, some grass...
 			y = PopulationDensity.ManagedWorld.getHighestBlockYAt(x, z) + 1;
 			
+			//posts fall through trees, snow, and any existing post looking for the ground
 			Material blockType;
 			do
 			{
@@ -496,6 +494,7 @@ public class DataStore
 					blockType == Material.LONG_GRASS||
 					blockType == Material.LOG       ||
 					blockType == Material.GLOWSTONE ||
+					blockType == Material.SNOW 		||
 					blockType == Material.SIGN_POST
 					));
 			
@@ -716,8 +715,11 @@ public class DataStore
 			sign = (Sign)block.getState();
 			
 			sign.setLine(0, "Adventure!");
-			sign.setLine(2, "/NewestRegion");
-			sign.setLine(3, "/RandomRegion");
+			sign.setLine(2, "/RandomRegion");
+			if(!PopulationDensity.instance.newestRegionRequiresPermission)
+			{
+				sign.setLine(3, "/NewestRegion");
+			}
 			
 			signData = (org.bukkit.material.Sign)sign.getData();
 			signData.setFacingDirection(BlockFace.WEST);

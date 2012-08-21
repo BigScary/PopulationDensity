@@ -17,6 +17,9 @@ public class ScanResultsTask implements Runnable
 	@Override
 	public void run() 
 	{
+		//collect garbage
+		System.gc();
+		
 		for(int i = 0; i < logEntries.size(); i++)
 		{
 			PopulationDensity.AddLogEntry(logEntries.get(i));
@@ -26,6 +29,6 @@ public class ScanResultsTask implements Runnable
 		{
 			RegionCoordinates newRegion = PopulationDensity.instance.dataStore.addRegion();
 			PopulationDensity.instance.scanRegion(newRegion, true);
-		}
+		}		
 	}
 }

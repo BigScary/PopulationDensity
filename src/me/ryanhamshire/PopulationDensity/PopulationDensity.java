@@ -19,7 +19,6 @@
 package me.ryanhamshire.PopulationDensity;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.logging.Logger;
 
 import org.bukkit.Chunk;
@@ -68,13 +67,17 @@ public class PopulationDensity extends JavaPlugin
 	public String managedWorldName;
 	public int maxDistanceFromSpawnToUseHomeRegion;
 	public double densityRatio;
-	public boolean sendRegionChangeMessages;
 	public int maxIdleMinutes;
 	public int minimumPlayersOnlineForIdleBoot;
 	public boolean enableLoginQueue;	
 	public int reservedSlotsForAdmins;
-	public int ticksPerAnimalSpawn;
 	public String queueMessage;
+	public int hoursBetweenScans;
+	public boolean buildRegionPosts;
+	public boolean newestRegionRequiresPermission;
+	public boolean regrowGrass;
+	public boolean respawnAnimals;
+	public boolean regrowTrees;
 	
 	public synchronized static void AddLogEntry(String entry)
 	{
@@ -100,15 +103,18 @@ public class PopulationDensity extends JavaPlugin
 		this.maxDistanceFromSpawnToUseHomeRegion = config.getInt("PopulationDensity.MaxDistanceFromSpawnToUseHomeRegion", 25);
 		this.managedWorldName = config.getString("PopulationDensity.ManagedWorldName", "");
 		this.densityRatio = config.getDouble("PopulationDensity.DensityRatio", 1.0);
-		this.sendRegionChangeMessages = config.getBoolean("PopulationDensity.SendRegionChangeMessages", true);
 		this.maxIdleMinutes = config.getInt("PopulationDensity.MaxIdleMinutes", 10);
 		this.enableLoginQueue = config.getBoolean("PopulationDensity.LoginQueueEnabled", true);
-		this.minimumPlayersOnlineForIdleBoot = config.getInt("PopulationDensity.MinimumPlayersOnlineForIdleBoot", 0);
+		this.minimumPlayersOnlineForIdleBoot = config.getInt("PopulationDensity.MinimumPlayersOnlineForIdleBoot", this.getServer().getMaxPlayers() / 2);
 		this.reservedSlotsForAdmins = config.getInt("PopulationDensity.ReservedSlotsForAdministrators", 1);
 		if(this.reservedSlotsForAdmins < 0) this.reservedSlotsForAdmins = 0;
-		this.ticksPerAnimalSpawn = config.getInt("PopulationDensity.TicksPerAnimalSpawn", 100);
-		if(this.ticksPerAnimalSpawn < 0) this.ticksPerAnimalSpawn = 0;
 		this.queueMessage = config.getString("PopulationDensity.LoginQueueMessage", "%queuePosition% of %queueLength% in queue.  Reconnect within 3 minutes to keep your place.  :)");
+		this.hoursBetweenScans = config.getInt("PopulationDensity.HoursBetweenScans", 6);
+		this.buildRegionPosts = config.getBoolean("PopulationDensity.BuildRegionPosts", true);
+		this.newestRegionRequiresPermission = config.getBoolean("PopulationDensity.NewestRegionRequiresPermission", false);
+		this.regrowGrass = config.getBoolean("PopulationDensity.GrassRegrows", true);
+		this.respawnAnimals = config.getBoolean("PopulationDensity.AnimalsRespawn", true);
+		this.regrowTrees = config.getBoolean("PopulationDensity.TreesRegrow", true);
 		
 		//write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
@@ -119,13 +125,17 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.MaxDistanceFromSpawnToUseHomeRegion", this.maxDistanceFromSpawnToUseHomeRegion);
 		config.set("PopulationDensity.ManagedWorldName", this.managedWorldName);
 		config.set("PopulationDensity.DensityRatio", this.densityRatio);
-		config.set("PopulationDensity.SendRegionChangeMessages", this.sendRegionChangeMessages);
 		config.set("PopulationDensity.MaxIdleMinutes", this.maxIdleMinutes);
 		config.set("PopulationDensity.LoginQueueEnabled", this.enableLoginQueue);
 		config.set("PopulationDensity.MinimumPlayersOnlineForIdleBoot", this.minimumPlayersOnlineForIdleBoot);
 		config.set("PopulationDensity.ReservedSlotsForAdministrators", this.reservedSlotsForAdmins);
-		config.set("PopulationDensity.TicksPerAnimalSpawn", this.ticksPerAnimalSpawn);
 		config.set("PopulationDensity.LoginQueueMessage", this.queueMessage);
+		config.set("PopulationDensity.HoursBetweenScans", this.hoursBetweenScans);
+		config.set("PopulationDensity.BuildRegionPosts", this.buildRegionPosts);
+		config.set("PopulationDensity.NewestRegionRequiresPermission", this.newestRegionRequiresPermission);
+		config.set("PopulationDensity.GrassRegrows", this.regrowGrass);
+		config.set("PopulationDensity.AnimalsRespawn", this.respawnAnimals);
+		config.set("PopulationDensity.TreesRegrow", this.regrowTrees);
 		
 		try
 		{
@@ -152,9 +162,6 @@ public class PopulationDensity extends JavaPlugin
 		//when datastore initializes, it loads player and region data, and posts some stats to the log
 		this.dataStore = new DataStore();
 		
-		//set animal spawn rate
-		ManagedWorld.setTicksPerAnimalSpawns(this.ticksPerAnimalSpawn);
-		
 		//register for events
 		PluginManager pluginManager = this.getServer().getPluginManager();
 		
@@ -170,9 +177,13 @@ public class PopulationDensity extends JavaPlugin
 		EntityEventHandler entityEventHandler = new EntityEventHandler();
 		pluginManager.registerEvents(entityEventHandler, this);
 		
+		//world events, to generate region posts when chunks load
+		WorldEventHandler worldEventHandler = new WorldEventHandler();
+		pluginManager.registerEvents(worldEventHandler, this);
+		
 		//make a note of the spawn world.  may be NULL if the configured city world name doesn't match an existing world
 		CityWorld = this.getServer().getWorld(this.cityWorldName);
-		if(!this.cityWorldName.isEmpty())
+		if(!this.cityWorldName.isEmpty() && CityWorld == null)
 		{
 			PopulationDensity.AddLogEntry("Could not find a world named \"" + this.cityWorldName + "\".  Please update your config.yml.");
 		}
@@ -180,7 +191,7 @@ public class PopulationDensity extends JavaPlugin
 		//scan the open region for resources and open a new one as necessary
 		//may open and close several regions before finally leaving an "acceptable" region open
 		//this will repeat every six hours
-		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new ScanOpenRegionTask(), 5L, 6 * 60 * 60 * 20L);
+		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new ScanOpenRegionTask(), 5L, this.hoursBetweenScans * 60 * 60 * 20L);
 	}
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args)
@@ -205,7 +216,7 @@ public class PopulationDensity extends JavaPlugin
 				return true;
 			}
 			
-			if(!this.playerCanTeleport(player)) return true;
+			if(!this.playerCanTeleport(player, false)) return true;
 			
 			//otherwise, teleport the user to the specified region					
 			this.TeleportPlayer(player, region, false);
@@ -215,7 +226,14 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("newestregion") && player != null)
 		{
-			if(!this.playerCanTeleport(player)) return true;
+			//check permission, if necessary
+			if(this.newestRegionRequiresPermission && !player.hasPermission("populationdensity.newestregion"))
+			{
+				player.sendMessage("You don't have permission to use that command.");
+				return true;
+			}
+			
+			if(!this.playerCanTeleport(player, false)) return true;
 			
 			//teleport the user to the open region
 			RegionCoordinates openRegion = this.dataStore.getOpenRegion();
@@ -321,30 +339,12 @@ public class PopulationDensity extends JavaPlugin
 			}
 			
 			//consider config, player location, player permissions
-			if(this.playerCanTeleport(player))
+			if(this.playerCanTeleport(player, true))
 			{
 				this.TeleportPlayer(player, homeRegion, false);
 				return true;
 			}
 			
-			//homeregion always works from the city world's spawn
-			if(CityWorld != null && player.getWorld().equals(CityWorld))
-			{
-				//max distance == 0 indicates no distance maximum
-				if(		player.hasPermission("populationdensity.teleportanywhere") || 
-						this.maxDistanceFromSpawnToUseHomeRegion < 1 || 
-						player.getLocation().distance(CityWorld.getSpawnLocation()) < this.maxDistanceFromSpawnToUseHomeRegion)
-				{
-					TeleportPlayer(player, playerData.homeRegion, false);					
-				}
-				else
-				{
-					player.sendMessage("You're not close enough to the spawn to teleport home.");
-				}
-				
-				return true;
-			}
-						
 			return true;
 		}
 		
@@ -357,33 +357,8 @@ public class PopulationDensity extends JavaPlugin
 				return true;
 			}
 			
-			//when teleportation is disabled, this command still works when the player is close to his HOME region post
-			if(!this.allowTeleportation)
-			{			
-				//close enough? teleport.
-				Location centerOfHomeRegion = getRegionCenter(playerData.homeRegion);
-				GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
-				centerOfHomeRegion.setY(ManagedWorld.getHighestBlockYAt(centerOfHomeRegion));
-				
-				if(centerOfHomeRegion.distanceSquared(player.getLocation()) < 100 || player.hasPermission("populationdensity.teleportanywhere"))
-				{
-					Location teleportDestination = CityWorld.getHighestBlockAt(CityWorld.getSpawnLocation()).getLocation();
-					teleportDestination.setY(teleportDestination.getY() + 3);
-					player.teleport(teleportDestination);
-				}
-				
-				//otherwise, error message
-				else
-				{
-					player.sendMessage("You must be close to your home region's post to use this command.");
-					player.sendMessage("On the surface, look for a glowing pillar on a wooden platform.");
-				}
-				
-				return true;
-			}
-			
 			//otherwise teleportation is enabled, so consider config, player location, player permissions					
-			if(this.playerCanTeleport(player))
+			if(this.playerCanTeleport(player, true))
 			{
 				Location spawn = CityWorld.getSpawnLocation();
 				
@@ -401,7 +376,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("randomregion") && player != null)
 		{
-			if(!this.playerCanTeleport(player)) return true;
+			if(!this.playerCanTeleport(player, false)) return true;
 			
 			RegionCoordinates randomRegion = this.dataStore.getRandomRegion(RegionCoordinates.fromLocation(player.getLocation()));
 			
@@ -451,7 +426,7 @@ public class PopulationDensity extends JavaPlugin
 				player.sendMessage("You haven't been invited to visit any regions.  Another player must invite you with /InviteToRegion first.");
 				return true;
 			}
-			else if(this.playerCanTeleport(player))
+			else if(this.playerCanTeleport(player, false))
 			{
 				this.TeleportPlayer(player, playerData.regionInvitation, false);
 			}
@@ -494,6 +469,8 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("addregion") && player != null)
 		{			
+			player.sendMessage("Opened a new region and started a resource scan.  See console or server logs for details.");
+			
 			RegionCoordinates newRegion = this.dataStore.addRegion();			
 			
 			this.scanRegion(newRegion, true);
@@ -566,59 +543,72 @@ public class PopulationDensity extends JavaPlugin
 	}
 	
 	//examines configuration, player permissions, and player location to determine whether or not to allow a teleport
-	private boolean playerCanTeleport(Player player)
+	private boolean playerCanTeleport(Player player, boolean isHomeOrCityTeleport)
 	{
 		//if the player has the permission for teleportation, always allow it
 		if(player.hasPermission("populationdensity.teleportanywhere")) return true;
 		
-		//otherwise if teleportation is disabled, always deny
-		if(!this.allowTeleportation)
+		//if teleportation from anywhere is enabled, always allow it
+		if(this.teleportFromAnywhere) return true;
+		
+		//avoid teleporting from other worlds
+		if(!player.getWorld().equals(ManagedWorld))
 		{
-			player.sendMessage("Sorry, you don't have permission to use that command.");
+			player.sendMessage("You can't teleport from here!");
 			return false;
 		}
 		
-		//if teleportation from anywhere is disabled
-		if(!this.teleportFromAnywhere)
-		{		
-			//if he's not in the managed world
-			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
-			if(currentRegion == null)
+		//when teleportation isn't allowed, the only exceptions are city to home, and home to city
+		if(!this.allowTeleportation)
+		{
+			if(!isHomeOrCityTeleport)
 			{
-				player.sendMessage("You can't teleport from here!");
+				player.sendMessage("You're limited to /HomeRegion and /CityRegion here.");
 				return false;
 			}
 			
-			//players must be close to region posts to teleport	
-			//get center of region coordinates (location of region post)
-			Location regionCenter = getRegionCenter(currentRegion);
-			regionCenter = ManagedWorld.getHighestBlockAt(regionCenter).getLocation();
+			//if close to home post, go for it
+			PlayerData playerData = this.dataStore.getPlayerData(player);
+			Location homeCenter = getRegionCenter(playerData.homeRegion);
+			if(homeCenter.distanceSquared(player.getLocation()) < 100) return true;
 			
-			//if the player is too far away, send an error message and don't teleport
-			if(regionCenter.distanceSquared(player.getLocation()) > 100)
-			{
-				player.sendMessage("You're not close enough to a region post to teleport.");
-				player.sendMessage("On the surface, look for a glowing yellow post on a stone platform.");
-				return false;
-			}
+			//if city is defined and close to city post, go for it
+			if(nearCityPost(player)) return true;
+			
+			player.sendMessage("You can't teleport from here!");
+			return false;
 		}
 		
-		//in all other cases, allow the teleportation
-		return true;
+		//otherwise, any post is acceptable to teleport from or to
+		else
+		{
+			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
+			Location currentCenter = getRegionCenter(currentRegion);
+			if(currentCenter.distanceSquared(player.getLocation()) < 100) return true;
+			
+			if(nearCityPost(player)) return true;
+			
+			player.sendMessage("You're not close enough to a region post to teleport.");
+			player.sendMessage("On the surface, look for a glowing yellow post on a stone platform.");
+			return false;			
+		}
 	}
 	
+	private boolean nearCityPost(Player player)
+	{
+		if(CityWorld != null && player.getWorld().equals(CityWorld))
+		{
+			//max distance == 0 indicates no distance maximum
+			return (this.maxDistanceFromSpawnToUseHomeRegion < 1 ||	player.getLocation().distance(CityWorld.getSpawnLocation()) < this.maxDistanceFromSpawnToUseHomeRegion);
+		}
+		
+		return false;
+	}
+
 	//teleports a player to a specific region of the managed world, notifying players of arrival/departure as necessary
 	//players always land at the region's region post, which is placed on the surface at the center of the region
 	public void TeleportPlayer(Player player, RegionCoordinates region, boolean silent)
 	{
-		//if in managed world before teleport
-		if(player.getWorld().equals(ManagedWorld) && !silent)
-		{
-			//inform players in that region of this player's departure
-			RegionCoordinates previousRegion = RegionCoordinates.fromLocation((player.getLocation()));			
-			this.notifyRegionChange(player, previousRegion, null);			
-		}
-		
 		//where specifically to send the player?
 		Location teleportDestination = getRegionCenter(region);
 		int x = teleportDestination.getBlockX();
@@ -630,54 +620,7 @@ public class PopulationDensity extends JavaPlugin
 		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY() + 2, z);
 		
 		//send him
-		player.teleport(teleportDestination);
-		
-		//inform him and others of his arrival
-		if(!silent)
-		{			
-			this.notifyRegionChange(player, null, region);
-		}
-	}
-	
-	//when a player moves between regions, this notifies players in those regions as appropriate
-	//one of the latter two params may be NULL when the player is arriving in or departing from the spawn world
-	public void notifyRegionChange(Player player, RegionCoordinates previousRegion, RegionCoordinates currentRegion)
-	{
-		//if to and from the same region, don't send any notifications at all
-		if(currentRegion != null && previousRegion != null && currentRegion.equals(previousRegion)) return;
-		
-		//if previous region is in the managed world, notify players in that region of his departure
-		if(previousRegion != null && this.sendRegionChangeMessages)
-		{			
-			instance.sendRegionExcept(player.getName() + " left this region.", previousRegion, player);
-		}
-		
-		//if new region is in the managed world, notify players in that region (including the moving player)
-		if(currentRegion != null)
-		{
-			//notify other players in the new region of his arrival
-			if(this.sendRegionChangeMessages)
-			instance.sendRegionExcept(player.getName() + " has arrived in this region.", currentRegion, player);
-		}
-	}
-	
-	//sends a message to all of the players in a region EXCEPT for the specified player
-	//used to notify players when someone enters or leaves the region they're in
-	public void sendRegionExcept(String message, RegionCoordinates targetRegion, Player playerToExclude)
-	{
-		if(targetRegion == null) return;
-		
-		List<Player> managedWorldPlayers = ManagedWorld.getPlayers();
-		for(int i = 0; i < managedWorldPlayers.size(); i++)
-		{
-			Player player = managedWorldPlayers.get(i);
-			if(player.equals(playerToExclude)) continue;
-			
-			if(targetRegion.equals(RegionCoordinates.fromLocation(player.getLocation())))
-			{
-				player.sendMessage(message);
-			}
-		}
+		player.teleport(teleportDestination);		
 	}
 	
 	//scans the open region for resources and may close the region (and open a new one) if accessible resources are low
@@ -788,7 +731,12 @@ public class PopulationDensity extends JavaPlugin
 		else
 			z = region.z * REGION_SIZE + REGION_SIZE / 2;
 		
-		return new Location(ManagedWorld, x, 1, z);
+		Location center = new Location(ManagedWorld, x, 1, z);
+				
+		//PopulationDensity.GuaranteeChunkLoaded(ManagedWorld.getChunkAt(center).getX(), ManagedWorld.getChunkAt(center).getZ());		
+		center = ManagedWorld.getHighestBlockAt(center).getLocation();
+		
+		return center;
 	}
 	
 	//capitalizes a string, used to make region names pretty

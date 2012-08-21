@@ -26,9 +26,16 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Creeper;
+import org.bukkit.entity.Enderman;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Spider;
 import org.bukkit.entity.ThrownPotion;
+import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -36,6 +43,8 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.ItemDespawnEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class EntityEventHandler implements Listener
 {
@@ -59,6 +68,41 @@ public class EntityEventHandler implements Listener
 		
 		//NOTE!  Why not distance?  Because distance squared is cheaper and will be good enough for this.
 	}
+	
+	//when an item despawns
+	//FEATURE: in the newest region only, regrow trees from fallen saplings
+	@EventHandler(ignoreCancelled = true)
+	public void onItemDespawn (ItemDespawnEvent event)
+	{
+		//respect config option
+		if(!PopulationDensity.instance.regrowTrees) return;
+		
+		//only care about dropped items
+		Entity entity = event.getEntity();
+		if(entity.getType() != EntityType.DROPPED_ITEM) return;
+		
+		if(!(entity instanceof Item)) return;
+		
+		//get info about the dropped item
+		ItemStack item = ((Item)entity).getItemStack();
+		
+		//only care about saplings
+		if(item.getType() != Material.SAPLING) return;
+		
+		//only care about the newest region
+		if(!PopulationDensity.instance.dataStore.getOpenRegion().equals(RegionCoordinates.fromLocation(entity.getLocation()))) return;
+		
+		//only replace these blocks with saplings
+		Block block = entity.getLocation().getBlock();
+		if(block.getType() != Material.AIR && block.getType() != Material.LONG_GRASS && block.getType() != Material.SNOW) return;
+		
+		//only plant trees in grass or dirt
+		Block underBlock = block.getRelative(BlockFace.DOWN);
+		if(underBlock.getType() == Material.GRASS || underBlock.getType() == Material.DIRT)
+		{
+			block.setTypeIdAndData(item.getTypeId(), item.getData().getData(), false);
+		}
+	}	
 	
 	@EventHandler(ignoreCancelled = true)
 	public void onEntityDamage (EntityDamageEvent event)
@@ -96,16 +140,63 @@ public class EntityEventHandler implements Listener
 		}		
 	}
 	
+	private int respawnAnimalCounter = 1;
+	
 	@EventHandler(ignoreCancelled = true)
 	public void onEntitySpawn(CreatureSpawnEvent event)
 	{
 		//do nothing for non-natural spawns
 		if(event.getSpawnReason() != SpawnReason.NATURAL) return;
 		
+		//when an animal naturally spawns, grow grass around it
 		Entity entity = event.getEntity();
-		if(entity instanceof Animals)
+		if(entity instanceof Animals && PopulationDensity.instance.regrowGrass)
 		{
 			this.regrow(entity.getLocation().getBlock(), 8);
+		}
+		
+		//when a monster spawns, sometimes spawn animals too
+		if(entity instanceof Monster && PopulationDensity.instance.respawnAnimals)
+		{
+			//only do this if the spawn is in the newest region
+			if(!PopulationDensity.instance.dataStore.getOpenRegion().equals(RegionCoordinates.fromLocation(entity.getLocation()))) return;				
+			
+			//if it's on grass, there's a 1/100 chance it will also spawn a group of animals
+			Block underBlock = event.getLocation().getBlock().getRelative(BlockFace.DOWN);
+			if(underBlock.getType() == Material.GRASS && --this.respawnAnimalCounter == 0)
+			{
+				this.respawnAnimalCounter = 50;
+				EntityType animalType = null;
+				
+				//decide what to spawn based on the type of monster
+				if(entity instanceof Creeper)
+				{
+					animalType = EntityType.COW;
+				}
+				else if(entity instanceof Zombie)
+				{
+					animalType = EntityType.CHICKEN;
+				}
+				else if(entity instanceof Spider)
+				{
+					animalType = EntityType.PIG;
+				}
+				else if(entity instanceof Enderman)
+				{
+					animalType = EntityType.SHEEP;
+				}
+				
+				//spawn three animals at the entity's location and regrow some grass
+				if(animalType != null)
+				{
+					for(int i = 0; i < 3; i++)
+					{
+						entity.getWorld().spawnEntity(entity.getLocation(), animalType);
+					}
+					
+					this.regrow(entity.getLocation().getBlock(), 8);
+				}
+			}
 		}
 	}
 	
@@ -121,7 +212,7 @@ public class EntityEventHandler implements Listener
                     if (center.getLocation().distanceSquared(toHandle.getLocation()) <= radius_squared) { // Block is in radius
                         if (rnd.nextInt(100) < 66) {    // Random chance
                             toHandle.getRelative(BlockFace.UP).setType(Material.LONG_GRASS);
-                            toHandle.getRelative(BlockFace.UP).setData((byte) 1);  //live grass instead of dead shrub
+                            toHandle.getRelative(BlockFace.UP).setData((byte) 1);  //data == 1 means live grass instead of dead shrub
                         }
                     }
                 }
