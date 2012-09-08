@@ -20,6 +20,7 @@ package me.ryanhamshire.PopulationDensity;
 
 import java.util.Random;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -165,7 +166,16 @@ public class EntityEventHandler implements Listener
 			Block underBlock = event.getLocation().getBlock().getRelative(BlockFace.DOWN);
 			if(underBlock.getType() == Material.GRASS && --this.respawnAnimalCounter == 0)
 			{
-				this.respawnAnimalCounter = 50;
+				this.respawnAnimalCounter = 100;
+				
+				//check the chunk for other animals
+				Chunk chunk = entity.getLocation().getChunk();
+				Entity [] entities = chunk.getEntities();
+				for(int i = 0; i < entities.length; i++)
+				{
+					if(entity instanceof Animals) return;
+				}
+				
 				EntityType animalType = null;
 				
 				//decide what to spawn based on the type of monster
@@ -186,14 +196,10 @@ public class EntityEventHandler implements Listener
 					animalType = EntityType.SHEEP;
 				}
 				
-				//spawn three animals at the entity's location and regrow some grass
+				//spawn an animal at the entity's location and regrow some grass
 				if(animalType != null)
 				{
-					for(int i = 0; i < 3; i++)
-					{
-						entity.getWorld().spawnEntity(entity.getLocation(), animalType);
-					}
-					
+					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
 					this.regrow(entity.getLocation().getBlock(), 8);
 				}
 			}

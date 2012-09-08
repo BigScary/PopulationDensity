@@ -19,6 +19,8 @@
 package me.ryanhamshire.PopulationDensity;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import org.bukkit.Chunk;
@@ -27,6 +29,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.*;
@@ -94,6 +97,26 @@ public class PopulationDensity extends JavaPlugin
 		//load the config if it exists
 		FileConfiguration config = YamlConfiguration.loadConfiguration(new File(DataStore.configFilePath));
 		
+		//prepare default setting for managed world...
+		String defaultManagedWorldName = "";
+		
+		//build a list of normal environment worlds 
+		List<World> worlds = this.getServer().getWorlds();
+		ArrayList<World> normalWorlds = new ArrayList<World>();
+		for(int i = 0; i < worlds.size(); i++)
+		{
+			if(worlds.get(i).getEnvironment() == Environment.NORMAL)
+			{
+				normalWorlds.add(worlds.get(i));
+			}
+		}
+		
+		//if there's only one, make it the default
+		if(normalWorlds.size() == 1)
+		{
+			defaultManagedWorldName = normalWorlds.get(0).getName();
+		}
+		
 		//read configuration settings (note defaults)
 		this.allowTeleportation = config.getBoolean("PopulationDensity.AllowTeleportation", true);
 		this.teleportFromAnywhere = config.getBoolean("PopulationDensity.TeleportFromAnywhere", false);
@@ -101,7 +124,7 @@ public class PopulationDensity extends JavaPlugin
 		this.respawnInHomeRegion = config.getBoolean("PopulationDensity.RespawnInHomeRegion", true);
 		this.cityWorldName = config.getString("PopulationDensity.CityWorldName", "");
 		this.maxDistanceFromSpawnToUseHomeRegion = config.getInt("PopulationDensity.MaxDistanceFromSpawnToUseHomeRegion", 25);
-		this.managedWorldName = config.getString("PopulationDensity.ManagedWorldName", "");
+		this.managedWorldName = config.getString("PopulationDensity.ManagedWorldName", defaultManagedWorldName);
 		this.densityRatio = config.getDouble("PopulationDensity.DensityRatio", 1.0);
 		this.maxIdleMinutes = config.getInt("PopulationDensity.MaxIdleMinutes", 10);
 		this.enableLoginQueue = config.getBoolean("PopulationDensity.LoginQueueEnabled", true);
@@ -146,7 +169,7 @@ public class PopulationDensity extends JavaPlugin
 			AddLogEntry("Unable to write to the configuration file at \"" + DataStore.configFilePath + "\"");
 		}
 		
-		//get a reference to the managed world, creating it first if necessary
+		//get a reference to the managed world
 		if(this.managedWorldName == null || this.managedWorldName.isEmpty())
 		{
 			PopulationDensity.AddLogEntry("Please specify a world to manage in config.yml.");
@@ -201,6 +224,13 @@ public class PopulationDensity extends JavaPlugin
 		if (sender instanceof Player)
 		{
 			player = (Player) sender;
+			
+			if(ManagedWorld == null)
+			{
+				player.sendMessage("The PopulationDensity plugin has not been properly configured.  Please update your config.yml to specify a world to manage.");
+				return true;
+			}
+			
 			playerData = this.dataStore.getPlayerData(player);
 		}
 		
@@ -617,7 +647,7 @@ public class PopulationDensity extends JavaPlugin
 		//find a safe height, a couple of blocks above the surface
 		GuaranteeChunkLoaded(x, z);
 		Block highestBlock = ManagedWorld.getHighestBlockAt(x, z);
-		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY() + 2, z);
+		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY() + 1, z);
 		
 		//send him
 		player.teleport(teleportDestination);		

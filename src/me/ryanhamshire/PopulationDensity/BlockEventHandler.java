@@ -43,6 +43,10 @@ public class BlockEventHandler implements Listener
 		
 		//otherwise figure out which region that block is in
 		Location blockLocation = block.getLocation();
+		
+		//region posts are at sea level at the lowest, so no need to check build permissions under that
+		if(blockLocation.getBlockY() < PopulationDensity.ManagedWorld.getSeaLevel() - 3) return;
+		
 		RegionCoordinates blockRegion = RegionCoordinates.fromLocation(blockLocation); 
 		
 		//if too close to (or above) region post, send an error message
@@ -72,6 +76,10 @@ public class BlockEventHandler implements Listener
 		if(!player.getWorld().equals(PopulationDensity.ManagedWorld)) return;
 		
 		Location blockLocation = block.getLocation();
+		
+		//region posts are at sea level at the lowest, so no need to check build permissions under that
+		if(blockLocation.getBlockY() < PopulationDensity.ManagedWorld.getSeaLevel() - 3) return;
+		
 		RegionCoordinates blockRegion = RegionCoordinates.fromLocation(blockLocation); 
 		
 		//if too close to (or above) region post, send an error message
