@@ -1,6 +1,7 @@
 package me.ryanhamshire.PopulationDensity;
 
 import org.bukkit.Chunk;
+import org.bukkit.entity.Animals;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -19,13 +20,23 @@ public class ScanOpenRegionTask implements Runnable
 			Entity [] entities = chunk.getEntities();
 			
 			int monsterCount = 0;
-			int itemCount = 0;			
+			int itemCount = 0;		
+			int animalCount = 0;
 			
 			for(int j = 0; j < entities.length; j++)
 			{
 				Entity entity = entities[j];
 				
-				if(entity instanceof Creature)
+				if(entity instanceof Animals)
+				{
+					animalCount++;
+					if(animalCount > 8)
+					{
+						entity.remove();
+					}
+				}
+				
+				else if(entity instanceof Creature)
 				{
 					monsterCount++;
 					if(monsterCount > 5)

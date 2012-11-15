@@ -18,8 +18,6 @@
 
 package me.ryanhamshire.PopulationDensity;
 
-import java.util.Random;
-
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -96,6 +94,22 @@ public class EntityEventHandler implements Listener
 		//only replace these blocks with saplings
 		Block block = entity.getLocation().getBlock();
 		if(block.getType() != Material.AIR && block.getType() != Material.LONG_GRASS && block.getType() != Material.SNOW) return;
+		
+		//don't plant saplings next to other saplings or logs
+		Block [] neighbors = new Block [] { 				
+				block.getRelative(BlockFace.EAST), 
+				block.getRelative(BlockFace.WEST), 
+				block.getRelative(BlockFace.NORTH), 
+				block.getRelative(BlockFace.SOUTH), 
+				block.getRelative(BlockFace.NORTH_EAST), 
+				block.getRelative(BlockFace.SOUTH_EAST), 
+				block.getRelative(BlockFace.SOUTH_WEST), 
+				block.getRelative(BlockFace.NORTH_WEST) };
+		
+		for(int i = 0; i < neighbors.length; i++)
+		{
+			if(neighbors[i].getType() == Material.SAPLING || neighbors[i].getType() == Material.LOG) return;
+		}
 		
 		//only plant trees in grass or dirt
 		Block underBlock = block.getRelative(BlockFace.DOWN);
@@ -200,26 +214,29 @@ public class EntityEventHandler implements Listener
 				if(animalType != null)
 				{
 					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
+					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
 					this.regrow(entity.getLocation().getBlock(), 8);
 				}
 			}
 		}
 	}
 	
-	private void regrow(Block center, int radius){
-        Random rnd = new Random();
+	private void regrow(Block center, int radius)
+	{
         int radius_squared = radius * radius;
         Block toHandle;
-        for (int x = -radius; x <= radius; x++) {
-            for (int z = -radius; z <= radius; z++) {
-                toHandle = center.getWorld().getBlockAt(center.getX() + x, center.getWorld().getMaxHeight() - 1, center.getZ() + z);
+        for (int x = -radius; x <= radius; x++)
+        {
+            for (int z = -radius; z <= radius; z++)
+            {
+                toHandle = center.getWorld().getBlockAt(center.getX() + x, center.getY(), center.getZ() + z);
                 while(toHandle.getType() == Material.AIR) toHandle = toHandle.getRelative(BlockFace.DOWN);
-                if (toHandle.getType() == Material.GRASS) { // Block is grass
-                    if (center.getLocation().distanceSquared(toHandle.getLocation()) <= radius_squared) { // Block is in radius
-                        if (rnd.nextInt(100) < 66) {    // Random chance
-                            toHandle.getRelative(BlockFace.UP).setType(Material.LONG_GRASS);
-                            toHandle.getRelative(BlockFace.UP).setData((byte) 1);  //data == 1 means live grass instead of dead shrub
-                        }
+                if (toHandle.getType() == Material.GRASS) // Block is grass
+                {
+                    if (center.getLocation().distanceSquared(toHandle.getLocation()) <= radius_squared) // Block is in radius
+                    {
+                        toHandle.getRelative(BlockFace.UP).setType(Material.LONG_GRASS);
+                        toHandle.getRelative(BlockFace.UP).setData((byte) 1);  //data == 1 means live grass instead of dead shrub
                     }
                 }
             }

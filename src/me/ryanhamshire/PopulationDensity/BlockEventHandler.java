@@ -19,6 +19,7 @@
 package me.ryanhamshire.PopulationDensity;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -91,6 +92,19 @@ public class BlockEventHandler implements Listener
 				player.sendMessage("You can't build this close to a player spawn point.");
 			placeEvent.setCancelled(true);
 			return;
+		}
+		
+		//if bed or chest and player has not been reminded about /movein this play session
+		if(block.getType() == Material.BED || block.getType() == Material.CHEST)
+		{
+			PlayerData playerData = PopulationDensity.instance.dataStore.getPlayerData(player);
+			if(playerData.advertisedMoveInThisSession) return;
+			
+			if(!playerData.homeRegion.equals(blockRegion))
+			{
+				player.sendMessage("You're building outside of your home region.  If you'd like to make this region your new home to help you return here later, use /MoveIn.");
+				playerData.advertisedMoveInThisSession = true;
+			}
 		}
 	}
 	

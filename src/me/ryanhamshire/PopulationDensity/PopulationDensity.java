@@ -1,6 +1,6 @@
 /*
     PopulationDensity Server Plugin for Minecraft
-    Copyright (C) 2011 Ryan Hamshire
+    Copyright (C) 2012 Ryan Hamshire
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
 
 public class PopulationDensity extends JavaPlugin
 {
@@ -82,6 +81,12 @@ public class PopulationDensity extends JavaPlugin
 	public boolean respawnAnimals;
 	public boolean regrowTrees;
 	
+	public String [] mainCustomSignContent;
+	public String [] northCustomSignContent;
+	public String [] southCustomSignContent;
+	public String [] eastCustomSignContent;
+	public String [] westCustomSignContent;
+	
 	public synchronized static void AddLogEntry(String entry)
 	{
 		log.info("PopDensity: " + entry);
@@ -118,6 +123,7 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		//read configuration settings (note defaults)
+		//and write those values back and save. this ensures the config file is available on disk for editing
 		this.allowTeleportation = config.getBoolean("PopulationDensity.AllowTeleportation", true);
 		this.teleportFromAnywhere = config.getBoolean("PopulationDensity.TeleportFromAnywhere", false);
 		this.newPlayersSpawnInHomeRegion = config.getBoolean("PopulationDensity.NewPlayersSpawnInHomeRegion", true);
@@ -139,7 +145,6 @@ public class PopulationDensity extends JavaPlugin
 		this.respawnAnimals = config.getBoolean("PopulationDensity.AnimalsRespawn", true);
 		this.regrowTrees = config.getBoolean("PopulationDensity.TreesRegrow", true);
 		
-		//write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
 		config.set("PopulationDensity.RespawnInHomeRegion", this.respawnInHomeRegion);
 		config.set("PopulationDensity.CityWorldName", this.cityWorldName);
@@ -159,6 +164,12 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.GrassRegrows", this.regrowGrass);
 		config.set("PopulationDensity.AnimalsRespawn", this.respawnAnimals);
 		config.set("PopulationDensity.TreesRegrow", this.regrowTrees);
+		
+		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
+		this.northCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.North", new String [] {"", "", "", ""});
+		this.southCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.South", new String [] {"", "", "", ""});
+		this.eastCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.East", new String [] {"", "", "", ""});
+		this.westCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.West", new String [] {"", "", "", ""});
 		
 		try
 		{
@@ -215,6 +226,58 @@ public class PopulationDensity extends JavaPlugin
 		//may open and close several regions before finally leaving an "acceptable" region open
 		//this will repeat every six hours
 		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new ScanOpenRegionTask(), 5L, this.hoursBetweenScans * 60 * 60 * 20L);
+	}
+	
+	public String [] initializeSignContentConfig(FileConfiguration config, String configurationNode, String [] defaultLines)
+	{
+		//read what's in the file
+		List<String> linesFromConfig = config.getStringList(configurationNode);
+		
+		//if nothing, replace with default
+		int i = 0;
+		if(linesFromConfig == null || linesFromConfig.size() == 0)
+		{
+			for(; i < defaultLines.length && i < 4; i++)
+			{
+				linesFromConfig.add(defaultLines[i]);
+			}			
+		}
+		
+		//fill any blanks
+		for(i = linesFromConfig.size(); i < 4; i++)
+		{
+			linesFromConfig.add("");
+		}
+		
+		//write it back to the config file
+		config.set(configurationNode, linesFromConfig);
+		
+		//would the sign be empty?
+		boolean emptySign = true;
+		for(i = 0; i < 4; i++)
+		{
+			if(linesFromConfig.get(i).length() > 0)
+			{
+				emptySign = false;
+				break;
+			}
+		}
+		
+		//return end result
+		if(emptySign)
+		{
+			return null;
+		}
+		else	
+		{
+			String [] returnArray = new String [4];
+			for(i = 0; i < 4 && i < linesFromConfig.size(); i++)
+			{
+				returnArray[i] = linesFromConfig.get(i);
+			}
+			
+			return returnArray;		
+		}
 	}
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args)
@@ -303,43 +366,41 @@ public class PopulationDensity extends JavaPlugin
 				return true;
 			}
 			
-			String regionName = this.dataStore.getRegionName(currentRegion);
-			if(regionName != null)
+			//validate argument
+			if(args.length < 1) return false;
+			
+			String name = args[0];
+			
+			if(name.length() > 10)
 			{
-				player.sendMessage("This region already has a name.");
+				player.sendMessage("Region names must be at most 10 letters long.");
+				return true;
 			}
-			else
+			
+			for(int i = 0; i < name.length(); i++)
 			{
-				//validate argument
-				if(args.length < 1) return false;
-				
-				String name = args[0];
-				
-				if(name.length() > 10)
+				char c = name.charAt(i);
+				if(Character.isWhitespace(c))
 				{
-					player.sendMessage("Region names must be at most 10 letters long.");
+					player.sendMessage("Region names must not include spaces.");
 					return true;
 				}
 				
-				for(int i = 0; i < name.length(); i++)
+				if(!Character.isLetter(c))
 				{
-					char c = name.charAt(i);
-					if(Character.isWhitespace(c))
-					{
-						player.sendMessage("Region names must not include spaces.");
-						return true;
-					}
-					
-					if(!Character.isLetter(c))
-					{
-						player.sendMessage("Region names may only include letters.");
-						return true;
-					}					
-				}
-				
-				//name region
-				this.dataStore.nameRegion(currentRegion, name);
+					player.sendMessage("Region names may only include letters.");
+					return true;
+				}					
 			}
+			
+			if(this.dataStore.getRegionCoordinates(name) != null)
+			{
+				player.sendMessage("There's already a region by that name.");
+				return true;
+			}
+			
+			//name region
+			this.dataStore.nameRegion(currentRegion, name);
 			
 			return true;
 		}
@@ -516,7 +577,7 @@ public class PopulationDensity extends JavaPlugin
 			return true;
 		}
 		
-		else if(cmd.getName().equalsIgnoreCase("loginpriority") && player != null)
+		else if(cmd.getName().equalsIgnoreCase("loginpriority"))
 		{					
 			//requires exactly two parameters, the other player's name and the priority
 			if(args.length != 2 && args.length != 1) return false;
@@ -529,13 +590,13 @@ public class PopulationDensity extends JavaPlugin
 				targetPlayer = this.resolvePlayer(args[0]);
 				if(targetPlayer == null)
 				{
-					player.sendMessage("Player \"" + args[0] + "\" not found.");
+					PopulationDensity.sendMessage(player, "Player \"" + args[0] + "\" not found.");
 					return true;
 				}
 				
 				targetPlayerData = this.dataStore.getPlayerData(targetPlayer);
 				
-				player.sendMessage(targetPlayer.getName() + "'s login priority: " + targetPlayerData.loginPriority + ".");
+				PopulationDensity.sendMessage(player, targetPlayer.getName() + "'s login priority: " + targetPlayerData.loginPriority + ".");
 				
 				if(args.length < 2) return false;  //usage displayed
 			
@@ -555,10 +616,10 @@ public class PopulationDensity extends JavaPlugin
 				else if(priority < 0) priority = 0;
 				
 				targetPlayerData.loginPriority = priority;
-				this.dataStore.savePlayerData(targetPlayer, playerData);
+				this.dataStore.savePlayerData(targetPlayer, targetPlayerData);
 				
 				//confirmation message
-				player.sendMessage("Set " + targetPlayer.getName() + "'s priority to " + priority + ".");
+				PopulationDensity.sendMessage(player, "Set " + targetPlayer.getName() + "'s priority to " + priority + ".");
 				
 				return true;
 			}
@@ -644,13 +705,18 @@ public class PopulationDensity extends JavaPlugin
 		int x = teleportDestination.getBlockX();
 		int z = teleportDestination.getBlockZ();
 		
-		//find a safe height, a couple of blocks above the surface
+		//make sure the chunk is loaded
 		GuaranteeChunkLoaded(x, z);
+		
+		//send him the chunk so his client knows about his destination
+		teleportDestination.getWorld().refreshChunk(x, z);
+		
+		//find a safe height, a couple of blocks above the surface		
 		Block highestBlock = ManagedWorld.getHighestBlockAt(x, z);
-		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY() + 1, z);
+		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY() + 1, z);		
 		
 		//send him
-		player.teleport(teleportDestination);		
+		player.teleport(teleportDestination);
 	}
 	
 	//scans the open region for resources and may close the region (and open a new one) if accessible resources are low
@@ -816,5 +882,17 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		return null;
+	}
+	
+	private static void sendMessage(Player player, String message)
+	{
+		if(player != null)
+		{
+			player.sendMessage(message);
+		}
+		else
+		{
+			PopulationDensity.AddLogEntry(message);
+		}
 	}
 }

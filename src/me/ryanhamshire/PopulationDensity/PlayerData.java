@@ -15,6 +15,7 @@ public class PlayerData
 	public boolean wasInMinecartLastRound = false;
 	public int afkCheckTaskID = -1;
 	public int loginPriority = 0;
+	public boolean advertisedMoveInThisSession = false;
 	
 	//queue-related variables
 	public Date lastDisconnect;
