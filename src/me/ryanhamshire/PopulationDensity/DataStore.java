@@ -590,38 +590,46 @@ public class DataStore
 		regionName = PopulationDensity.capitalize(regionName);
 		
 		Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 2, z - 1);
-		block.setType(Material.WALL_SIGN);
 		
-		Sign sign = (Sign)block.getState();
-		
-		sign.setLine(0, "E");
-		sign.setLine(1, "<--");
-		sign.setLine(2, regionName);
-		
-		org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
-		signData.setFacingDirection(BlockFace.EAST);
-		sign.setData(signData);		
-		
-		sign.update();
+		if(block.getState() instanceof Sign)
+		{
+			block.setType(Material.WALL_SIGN);
+			
+			Sign sign = (Sign)block.getState();
+			
+			sign.setLine(0, "E");
+			sign.setLine(1, "<--");
+			sign.setLine(2, regionName);
+			
+			org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.EAST);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
 		
 		//if a city world is defined, also add a /cityregion sign on the east side of the post
 		if(PopulationDensity.CityWorld != null)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z - 1);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			sign.setLine(0, "Visit the City:");
-			sign.setLine(1, "/CityRegion");
-			sign.setLine(2, "Return Home:");
-			sign.setLine(3, "/HomeRegion");
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.EAST);
-			sign.setData(signData);		
-			
-			sign.update();
+			if(block.getState() instanceof Sign)
+			{
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				sign.setLine(0, "Visit the City:");
+				sign.setLine(1, "/CityRegion");
+				sign.setLine(2, "Return Home:");
+				sign.setLine(3, "/HomeRegion");
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.EAST);
+				sign.setData(signData);		
+				
+				sign.update();
+			}
 		}
 		
 		//add a sign for the region to the east
@@ -630,38 +638,46 @@ public class DataStore
 		regionName = PopulationDensity.capitalize(regionName);
 		
 		block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 2, z);
-		block.setType(Material.WALL_SIGN);
 		
-		sign = (Sign)block.getState();
-		
-		sign.setLine(0, "N");
-		sign.setLine(1, "<--");
-		sign.setLine(2, regionName);
-		
-		signData = (org.bukkit.material.Sign)sign.getData();
-		signData.setFacingDirection(BlockFace.NORTH);
-		sign.setData(signData);		
-		
-		sign.update();
+		if(block.getState() instanceof Sign)
+		{
+			block.setType(Material.WALL_SIGN);
+			
+			Sign sign = (Sign)block.getState();
+			
+			sign.setLine(0, "N");
+			sign.setLine(1, "<--");
+			sign.setLine(2, regionName);
+			
+			org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.NORTH);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
 		
 		//if teleportation is enabled, also add a sign facing north for /visitregion and /invitetoregion
 		if(PopulationDensity.instance.allowTeleportation)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 3, z);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			sign.setLine(0, "Visit Friends:");
-			sign.setLine(1, "/VisitRegion");
-			sign.setLine(2, "Invite Friends:");
-			sign.setLine(3, "/InviteToRegion");
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.NORTH);
-			sign.setData(signData);		
-			
-			sign.update();
+			if(block.getState() instanceof Sign)
+			{
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				sign.setLine(0, "Visit Friends:");
+				sign.setLine(1, "/VisitRegion");
+				sign.setLine(2, "Invite Friends:");
+				sign.setLine(3, "/InviteToRegion");
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.NORTH);
+				sign.setData(signData);		
+				
+				sign.update();
+			}
 		}
 		
 		//add a sign for the region to the west
@@ -670,38 +686,46 @@ public class DataStore
 		regionName = PopulationDensity.capitalize(regionName);
 		
 		block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 2, z);
-		block.setType(Material.WALL_SIGN);
 		
-		sign = (Sign)block.getState();
-		
-		sign.setLine(0, "S");
-		sign.setLine(1, "<--");
-		sign.setLine(2, regionName);
-		
-		signData = (org.bukkit.material.Sign)sign.getData();
-		signData.setFacingDirection(BlockFace.SOUTH);
-		sign.setData(signData);		
-		
-		sign.update();
+		if(block.getState() instanceof Sign)
+		{
+			block.setType(Material.WALL_SIGN);
+			
+			Sign sign = (Sign)block.getState();
+			
+			sign.setLine(0, "S");
+			sign.setLine(1, "<--");
+			sign.setLine(2, regionName);
+			
+			org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.SOUTH);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
 		
 		//if teleportation is enabled, also add a sign facing south for /homeregion
 		if(PopulationDensity.instance.allowTeleportation)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 3, z);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			sign.setLine(0, "Set Your Home:");
-			sign.setLine(1, "/MoveIn");
-			sign.setLine(2, "Return Home:");
-			sign.setLine(3, "/HomeRegion");
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.SOUTH);
-			sign.setData(signData);		
-			
-			sign.update();
+			if(block.getState() instanceof Sign)
+			{
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				sign.setLine(0, "Set Your Home:");
+				sign.setLine(1, "/MoveIn");
+				sign.setLine(2, "Return Home:");
+				sign.setLine(3, "/HomeRegion");
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.SOUTH);
+				sign.setData(signData);		
+				
+				sign.update();
+			}
 		}
 		
 		//add a sign for the region to the north
@@ -710,40 +734,48 @@ public class DataStore
 		regionName = PopulationDensity.capitalize(regionName);
 		
 		block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 2, z + 1);
-		block.setType(Material.WALL_SIGN);
 		
-		sign = (Sign)block.getState();
-		
-		sign.setLine(0, "W");
-		sign.setLine(1, "<--");
-		sign.setLine(2, regionName);
-		
-		signData = (org.bukkit.material.Sign)sign.getData();
-		signData.setFacingDirection(BlockFace.WEST);
-		sign.setData(signData);		
-		
-		sign.update();
+		if(block.getState() instanceof Sign)
+		{
+			block.setType(Material.WALL_SIGN);
+			
+			Sign sign = (Sign)block.getState();
+			
+			sign.setLine(0, "W");
+			sign.setLine(1, "<--");
+			sign.setLine(2, regionName);
+			
+			org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+			signData.setFacingDirection(BlockFace.WEST);
+			sign.setData(signData);		
+			
+			sign.update();
+		}
 		
 		//if teleportation is enabled, also add a sign facing west for /newestregion and /randomregion
 		if(PopulationDensity.instance.allowTeleportation)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z + 1);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			sign.setLine(0, "Adventure!");
-			sign.setLine(2, "/RandomRegion");
-			if(!PopulationDensity.instance.newestRegionRequiresPermission)
+			if(block.getState() instanceof Sign)
 			{
-				sign.setLine(3, "/NewestRegion");
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				sign.setLine(0, "Adventure!");
+				sign.setLine(2, "/RandomRegion");
+				if(!PopulationDensity.instance.newestRegionRequiresPermission)
+				{
+					sign.setLine(3, "/NewestRegion");
+				}
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.WEST);
+				sign.setData(signData);		
+				
+				sign.update();
 			}
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.WEST);
-			sign.setData(signData);		
-			
-			sign.update();
 		}
 		
 		//custom signs
@@ -751,96 +783,116 @@ public class DataStore
 		if(PopulationDensity.instance.mainCustomSignContent != null)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z - 1);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			for(int i = 0; i < 4; i++)
+			if(block.getState() instanceof Sign)
 			{
-				sign.setLine(i, PopulationDensity.instance.mainCustomSignContent[i]);
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				for(int i = 0; i < 4; i++)
+				{
+					sign.setLine(i, PopulationDensity.instance.mainCustomSignContent[i]);
+				}
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.EAST);
+				sign.setData(signData);
+				
+				sign.update();
 			}
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.EAST);
-			sign.setData(signData);
-			
-			sign.update();
 		}
 		
 		if(PopulationDensity.instance.northCustomSignContent != null)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x - 1, y + 1, z);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			for(int i = 0; i < 4; i++)
+			if(block.getState() instanceof Sign)
 			{
-				sign.setLine(i, PopulationDensity.instance.northCustomSignContent[i]);
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				for(int i = 0; i < 4; i++)
+				{
+					sign.setLine(i, PopulationDensity.instance.northCustomSignContent[i]);
+				}
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.NORTH);
+				sign.setData(signData);		
+				
+				sign.update();
 			}
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.NORTH);
-			sign.setData(signData);		
-			
-			sign.update();
 		}
 		
 		if(PopulationDensity.instance.southCustomSignContent != null)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x + 1, y + 1, z);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			for(int i = 0; i < 4; i++)
+			if(block.getState() instanceof Sign)
 			{
-				sign.setLine(i, PopulationDensity.instance.southCustomSignContent[i]);
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				for(int i = 0; i < 4; i++)
+				{
+					sign.setLine(i, PopulationDensity.instance.southCustomSignContent[i]);
+				}
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.SOUTH);
+				sign.setData(signData);		
+				
+				sign.update();
 			}
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.SOUTH);
-			sign.setData(signData);		
-			
-			sign.update();
 		}
 		
 		if(PopulationDensity.instance.eastCustomSignContent != null)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 1, z - 1);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			for(int i = 0; i < 4; i++)
+			if(block.getState() instanceof Sign)
 			{
-				sign.setLine(i, PopulationDensity.instance.eastCustomSignContent[i]);
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				for(int i = 0; i < 4; i++)
+				{
+					sign.setLine(i, PopulationDensity.instance.eastCustomSignContent[i]);
+				}
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.EAST);
+				sign.setData(signData);		
+				
+				sign.update();
 			}
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.EAST);
-			sign.setData(signData);		
-			
-			sign.update();
 		}
 		
 		if(PopulationDensity.instance.westCustomSignContent != null)
 		{
 			block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 1, z + 1);
-			block.setType(Material.WALL_SIGN);
 			
-			sign = (Sign)block.getState();
-			
-			for(int i = 0; i < 4; i++)
+			if(block.getState() instanceof Sign)
 			{
-				sign.setLine(i, PopulationDensity.instance.westCustomSignContent[i]);
+				block.setType(Material.WALL_SIGN);
+				
+				Sign sign = (Sign)block.getState();
+				
+				for(int i = 0; i < 4; i++)
+				{
+					sign.setLine(i, PopulationDensity.instance.westCustomSignContent[i]);
+				}
+				
+				org.bukkit.material.Sign signData = (org.bukkit.material.Sign)sign.getData();
+				signData.setFacingDirection(BlockFace.WEST);
+				sign.setData(signData);		
+				
+				sign.update();
 			}
-			
-			signData = (org.bukkit.material.Sign)sign.getData();
-			signData.setFacingDirection(BlockFace.WEST);
-			sign.setData(signData);		
-			
-			sign.update();
 		}
 		
 		if(updateNeighboringRegions)
