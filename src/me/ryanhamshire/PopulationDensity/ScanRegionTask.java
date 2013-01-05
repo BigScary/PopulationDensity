@@ -78,7 +78,7 @@ public class ScanRegionTask implements Runnable
 		
 		//set depth boundary
 		//if a player has to brave cavernous depths, those resources aren't "easily attainable"
-		int min_y = PopulationDensity.ManagedWorld.getSeaLevel() - 20;
+		int min_y = PopulationDensity.instance.minimumRegionPostY - 20;
 		
 		//instantiate empty queue
 		ConcurrentLinkedQueue<Position> unexaminedQueue = new ConcurrentLinkedQueue<Position>();

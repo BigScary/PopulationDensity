@@ -80,6 +80,9 @@ public class PopulationDensity extends JavaPlugin
 	public boolean regrowGrass;
 	public boolean respawnAnimals;
 	public boolean regrowTrees;
+	public boolean thinAnimalAndMonsterCrowds;
+	
+	public int minimumRegionPostY;
 	
 	public String [] mainCustomSignContent;
 	public String [] northCustomSignContent;
@@ -123,7 +126,6 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		//read configuration settings (note defaults)
-		//and write those values back and save. this ensures the config file is available on disk for editing
 		this.allowTeleportation = config.getBoolean("PopulationDensity.AllowTeleportation", true);
 		this.teleportFromAnywhere = config.getBoolean("PopulationDensity.TeleportFromAnywhere", false);
 		this.newPlayersSpawnInHomeRegion = config.getBoolean("PopulationDensity.NewPlayersSpawnInHomeRegion", true);
@@ -144,7 +146,10 @@ public class PopulationDensity extends JavaPlugin
 		this.regrowGrass = config.getBoolean("PopulationDensity.GrassRegrows", true);
 		this.respawnAnimals = config.getBoolean("PopulationDensity.AnimalsRespawn", true);
 		this.regrowTrees = config.getBoolean("PopulationDensity.TreesRegrow", true);
+		this.thinAnimalAndMonsterCrowds = config.getBoolean("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", true);
+		this.minimumRegionPostY = config.getInt("PopulationDensity.MinimumRegionPostY", 63);
 		
+		//and write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
 		config.set("PopulationDensity.RespawnInHomeRegion", this.respawnInHomeRegion);
 		config.set("PopulationDensity.CityWorldName", this.cityWorldName);
@@ -164,7 +169,10 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.GrassRegrows", this.regrowGrass);
 		config.set("PopulationDensity.AnimalsRespawn", this.respawnAnimals);
 		config.set("PopulationDensity.TreesRegrow", this.regrowTrees);
+		config.set("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", this.thinAnimalAndMonsterCrowds);
+		config.set("PopulationDensity.MinimumRegionPostY", this.minimumRegionPostY);
 		
+		//this is a combination load/preprocess/save for custom signs on the region posts
 		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
 		this.northCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.North", new String [] {"", "", "", ""});
 		this.southCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.South", new String [] {"", "", "", ""});
@@ -382,7 +390,7 @@ public class PopulationDensity extends JavaPlugin
 				char c = name.charAt(i);
 				if(Character.isWhitespace(c))
 				{
-					player.sendMessage("Region names must not include spaces.");
+					player.sendMessage("Region names may not include spaces.");
 					return true;
 				}
 				
@@ -401,6 +409,9 @@ public class PopulationDensity extends JavaPlugin
 			
 			//name region
 			this.dataStore.nameRegion(currentRegion, name);
+			
+			//update post
+			this.dataStore.AddRegionPost(currentRegion, true);	
 			
 			return true;
 		}
@@ -799,7 +810,7 @@ public class PopulationDensity extends JavaPlugin
 		ScanRegionTask task = new ScanRegionTask(snapshots, openNewRegions);
 		
 		//run it in a separate thread		
-		this.getServer().getScheduler().scheduleAsyncDelayedTask(this, task, 5L);		
+		this.getServer().getScheduler().runTaskLaterAsynchronously(this, task, 5L);		
 	}
 	
 	//ensures a piece of the managed world is loaded into server memory

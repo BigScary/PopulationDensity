@@ -5,6 +5,7 @@ import org.bukkit.entity.Animals;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Villager;
 
 public class ScanOpenRegionTask implements Runnable 
 {
@@ -12,45 +13,58 @@ public class ScanOpenRegionTask implements Runnable
 	public void run() 
 	{
 		//scan loaded chunks for chunks with too many monsters or items, and remove the superfluous
-		Chunk [] chunks = PopulationDensity.ManagedWorld.getLoadedChunks();
-		for(int i = 0; i < chunks.length; i++)
+		if(PopulationDensity.instance.thinAnimalAndMonsterCrowds)
 		{
-			Chunk chunk = chunks[i];
-			
-			Entity [] entities = chunk.getEntities();
-			
-			int monsterCount = 0;
-			int itemCount = 0;		
-			int animalCount = 0;
-			
-			for(int j = 0; j < entities.length; j++)
+			Chunk [] chunks = PopulationDensity.ManagedWorld.getLoadedChunks();
+			for(int i = 0; i < chunks.length; i++)
 			{
-				Entity entity = entities[j];
+				Chunk chunk = chunks[i];
 				
-				if(entity instanceof Animals)
+				Entity [] entities = chunk.getEntities();
+				
+				int monsterCount = 0;
+				int itemCount = 0;		
+				int animalCount = 0;
+				int villagerCount = 0;
+				
+				for(int j = 0; j < entities.length; j++)
 				{
-					animalCount++;
-					if(animalCount > 8)
+					Entity entity = entities[j];
+					
+					if(entity instanceof Animals)
 					{
-						entity.remove();
+						animalCount++;
+						if(animalCount > 12)
+						{
+							entity.remove();
+						}
 					}
-				}
-				
-				else if(entity instanceof Creature)
-				{
-					monsterCount++;
-					if(monsterCount > 5)
+					
+					else if(entity instanceof Villager)
 					{
-						entity.remove();
+						villagerCount++;
+						if(villagerCount > 8)
+						{
+							entity.remove();							
+						}
 					}
-				}
-				
-				else if(entity instanceof Item)
-				{
-					itemCount++;
-					if(itemCount > 25)
+					
+					else if(entity instanceof Creature)
 					{
-						entity.remove();
+						monsterCount++;
+						if(monsterCount > 5)
+						{
+							entity.remove();
+						}
+					}
+					
+					else if(entity instanceof Item)
+					{
+						itemCount++;
+						if(itemCount > 25)
+						{
+							entity.remove();
+						}
 					}
 				}
 			}
