@@ -147,7 +147,7 @@ public class PopulationDensity extends JavaPlugin
 		this.respawnAnimals = config.getBoolean("PopulationDensity.AnimalsRespawn", true);
 		this.regrowTrees = config.getBoolean("PopulationDensity.TreesRegrow", true);
 		this.thinAnimalAndMonsterCrowds = config.getBoolean("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", true);
-		this.minimumRegionPostY = config.getInt("PopulationDensity.MinimumRegionPostY", 63);
+		this.minimumRegionPostY = config.getInt("PopulationDensity.MinimumRegionPostY", 62);
 		
 		//and write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);

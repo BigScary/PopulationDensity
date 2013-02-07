@@ -36,6 +36,7 @@ import org.bukkit.entity.Spider;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
@@ -157,17 +158,19 @@ public class EntityEventHandler implements Listener
 	
 	private int respawnAnimalCounter = 1;
 	
-	@EventHandler(ignoreCancelled = true)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onEntitySpawn(CreatureSpawnEvent event)
 	{
 		//do nothing for non-natural spawns
 		if(event.getSpawnReason() != SpawnReason.NATURAL) return;
 		
+		if(PopulationDensity.ManagedWorld == null || event.getLocation().getWorld() != PopulationDensity.ManagedWorld) return;
+		
 		//when an animal naturally spawns, grow grass around it
 		Entity entity = event.getEntity();
 		if(entity instanceof Animals && PopulationDensity.instance.regrowGrass)
 		{
-			this.regrow(entity.getLocation().getBlock(), 8);
+			this.regrow(entity.getLocation().getBlock(), 4);
 		}
 		
 		//when a monster spawns, sometimes spawn animals too
@@ -215,7 +218,7 @@ public class EntityEventHandler implements Listener
 				{
 					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
 					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
-					this.regrow(entity.getLocation().getBlock(), 8);
+					this.regrow(entity.getLocation().getBlock(), 4);
 				}
 			}
 		}
@@ -223,21 +226,19 @@ public class EntityEventHandler implements Listener
 	
 	private void regrow(Block center, int radius)
 	{
-        int radius_squared = radius * radius;
         Block toHandle;
         for (int x = -radius; x <= radius; x++)
         {
             for (int z = -radius; z <= radius; z++)
             {
-                toHandle = center.getWorld().getBlockAt(center.getX() + x, center.getY(), center.getZ() + z);
-                while(toHandle.getType() == Material.AIR) toHandle = toHandle.getRelative(BlockFace.DOWN);
+                toHandle = center.getWorld().getBlockAt(center.getX() + x, center.getY() + 2, center.getZ() + z);
+                while(toHandle.getType() == Material.AIR && toHandle.getY() > center.getY() - 4) toHandle = toHandle.getRelative(BlockFace.DOWN);
                 if (toHandle.getType() == Material.GRASS) // Block is grass
                 {
-                    if (center.getLocation().distanceSquared(toHandle.getLocation()) <= radius_squared) // Block is in radius
-                    {
-                        toHandle.getRelative(BlockFace.UP).setType(Material.LONG_GRASS);
-                        toHandle.getRelative(BlockFace.UP).setData((byte) 1);  //data == 1 means live grass instead of dead shrub
-                    }
+                    Block aboveBlock = toHandle.getRelative(BlockFace.UP);
+                	aboveBlock.setType(Material.LONG_GRASS);
+                    aboveBlock.setData((byte) 1);  //data == 1 means live grass instead of dead shrub
+                    continue;
                 }
             }
         }

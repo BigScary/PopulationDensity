@@ -42,7 +42,8 @@ public class PlayerEventHandler implements Listener {
 
 	// when a player attempts to join the server...
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-	public void onPlayerLoginEvent(PlayerLoginEvent event) {
+	public void onPlayerLoginEvent(PlayerLoginEvent event)
+	{
 		if (!PopulationDensity.instance.enableLoginQueue)
 			return;
 
@@ -85,26 +86,8 @@ public class PlayerEventHandler implements Listener {
 		// the player with very high priority
 		Calendar twoMinutesAgo = Calendar.getInstance();
 		twoMinutesAgo.add(Calendar.MINUTE, -2);
-		if (playerData.lastDisconnect.compareTo(twoMinutesAgo.getTime()) == 1) {
+		if (playerData.lastDisconnect.compareTo(twoMinutesAgo.getTime()) == 1 && playerData.loginPriority < 99) {
 			effectivePriority = 99;
-		}
-
-		// assert permission-based priority
-		if (player.hasPermission("populationdensity.prioritylogin")
-				&& effectivePriority < 25) {
-			effectivePriority = 25;
-		}
-
-		if (player.hasPermission("populationdensity.elitelogin")
-				&& effectivePriority < 50) {
-			effectivePriority = 50;
-		}
-
-		// if the player has kicktologin permission, treat the player with
-		// highest priority
-		if (player.hasPermission("populationdensity.adminlogin")) {
-			// PopulationDensity.AddLogEntry("\tcan fill administrative slots");
-			effectivePriority = 100;
 		}
 
 		// cap priority at 100
@@ -258,22 +241,45 @@ public class PlayerEventHandler implements Listener {
 
 	// when a player disconnects...
 	@EventHandler(ignoreCancelled = true)
-	public void onPlayerQuit(PlayerQuitEvent event) {
+	public void onPlayerQuit(PlayerQuitEvent event)
+	{
 		this.onPlayerDisconnect(event.getPlayer());
 	}
 
 	// when a player gets kicked...
 	@EventHandler(ignoreCancelled = true)
-	public void onPlayerKicked(PlayerKickEvent event) {
+	public void onPlayerKicked(PlayerKickEvent event)
+	{
 		this.onPlayerDisconnect(event.getPlayer());
 	}
 
 	// when a player disconnects...
-	private void onPlayerDisconnect(Player player) {
+	private void onPlayerDisconnect(Player player)
+	{
 		PlayerData playerData = this.dataStore.getPlayerData(player);
 
 		// note logout timestamp
 		playerData.lastDisconnect = Calendar.getInstance().getTime();
+		
+		//note login priority based on permissions
+		// assert permission-based priority
+		if (player.hasPermission("populationdensity.prioritylogin")
+				&& playerData.loginPriority < 25) {
+			playerData.loginPriority = 25;
+		}
+
+		if (player.hasPermission("populationdensity.elitelogin")
+				&& playerData.loginPriority < 50) {
+			playerData.loginPriority = 50;
+		}
+
+		// if the player has kicktologin permission, treat the player with
+		// highest priority
+		if (player.hasPermission("populationdensity.adminlogin")) {
+			// PopulationDensity.AddLogEntry("\tcan fill administrative slots");
+			playerData.loginPriority = 100;
+		}
+		
 		this.dataStore.savePlayerData(player, playerData);
 
 		// cancel any existing afk check task
@@ -282,8 +288,8 @@ public class PlayerEventHandler implements Listener {
 					.cancelTask(playerData.afkCheckTaskID);
 			playerData.afkCheckTaskID = -1;
 		}
-
-		// clear any cached data for this player in the data store
+		
+				// clear any cached data for this player in the data store
 		this.dataStore.clearCachedPlayerData(player);
 	}
 
