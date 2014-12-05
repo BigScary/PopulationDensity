@@ -1,17 +1,20 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
 softdepend: [Multiverse-Core, My Worlds, Transporter, MystCraft]
-version: 3.6.7
+version: 4.4
 commands:
-   visitregion:
+   visit:
       description: Teleports the player to a specified region.
-      usage: /visitregion <region name>    
+      usage: /visit <online player name> OR /visit <region name>
+      aliases: [visitregion, vr, tpa, visitpost]
    homeregion:
       description: Returns the player to his/her home region.
       usage: /homeregion
-   movein:
+      aliases: [home, gohome, homepost]
+   sethomeregion:
       description: Updates a user's home region to his current region.
-      usage: /movein
+      usage: /sethome
+      aliases: [sethome, movein, sethomeregion, sethomepost]
    nameregion:
       description: Names a wilderness region.
       usage: /nameregion <name>
@@ -22,16 +25,17 @@ commands:
    newestregion:
       description: Teleports the player to the newest region.
       usage: /newestregion
-   spawnregion:
-      description: Teleports the player to the default spawn.
-      usage: /spawnregion
    cityregion:
-      description: Teleports the player to the city region.
+      description: Teleports the player to the server spawn.
       usage: /cityregion
+      aliases: [spawn, spawnregion]
    addregion:
       description: Closes the current open region and opens a new one.
       usage: /addregion
       permission: populationdensity.addregion
+   randomregion:
+      description: Teleports you to a random region.
+      usage: /randomregion 
    scanregion:
       description: Scans the region you're standing in for resources.
       usage: /ScanRegion
@@ -40,15 +44,10 @@ commands:
       description: Generates a region post at the center of the current region.
       usage: /AddRegionPost
       permission: populationdensity.addregion
-   randomregion:
-      description: Teleports the player to a random region.
-      usage: /randomregion
-   invitetoregion:
-      description: Invites a player to move into your home region.
-      usage: /InviteToRegion <player name>
-   acceptregioninvite:
-      description: Accepts an invitation to move into another player's home region.
-      usage: /acceptregioninvite       
+   invite:
+      description: Invites a player to visit your home region.
+      usage: /invite <player name>
+      alises: [invitetoregion, regioninvite, inviteregion]
    loginpriority:
       description: Sets the login priority for a player.
       usage: /LoginPriority <player name> <priority, 0 - 100>

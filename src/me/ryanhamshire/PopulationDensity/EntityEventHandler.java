@@ -32,6 +32,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Spider;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Zombie;
@@ -208,10 +209,17 @@ public class EntityEventHandler implements Listener
 				{
 					animalType = EntityType.PIG;
 				}
-				else if(entity instanceof Enderman)
+				else if(entity instanceof Skeleton)
 				{
 					animalType = EntityType.SHEEP;
 				}
+				else if(entity instanceof Enderman)
+                {
+                    if(Math.random() > 0.5)
+                        animalType = EntityType.HORSE;
+                    else
+                        animalType = EntityType.WOLF;
+                }
 				
 				//spawn an animal at the entity's location and regrow some grass
 				if(animalType != null)

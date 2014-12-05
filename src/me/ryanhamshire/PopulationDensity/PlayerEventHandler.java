@@ -20,6 +20,7 @@ package me.ryanhamshire.PopulationDensity;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -72,7 +73,7 @@ public class PlayerEventHandler implements Listener {
 		 * player.getName());
 		 */
 
-		Player[] playersOnline = PopulationDensity.instance.getServer()
+		Collection<Player> playersOnline = (Collection<Player>)PopulationDensity.instance.getServer()
 				.getOnlinePlayers();
 		int totalSlots = PopulationDensity.instance.getServer().getMaxPlayers();
 
@@ -102,7 +103,7 @@ public class PlayerEventHandler implements Listener {
 			// PopulationDensity.AddLogEntry("\thas admin level priority");
 
 			// if there's room, log him in without consulting the queue
-			if (playersOnline.length <= totalSlots - 2) {
+			if (playersOnline.size() <= totalSlots - 2) {
 				// PopulationDensity.AddLogEntry("\tserver has room, so instant login");
 				return;
 			}
@@ -166,7 +167,7 @@ public class PlayerEventHandler implements Listener {
 		// playersOnline.length + " / " + totalSlots);
 
 		// if the player can log in
-		if (totalSlots - 1 - playersOnline.length
+		if (totalSlots - 1 - playersOnline.size()
 				- PopulationDensity.instance.reservedSlotsForAdmins > queuePosition) {
 			// PopulationDensity.AddLogEntry("\tcan log in now, removed from queue");
 
@@ -223,16 +224,28 @@ public class PlayerEventHandler implements Listener {
 					+ openRegion.toString() + ".");
 
 			// entirely new players who've not visited the server before will
-			// spawn at the default spawn
-			// if configured as such, teleport him there in a few seconds (this delay avoids a bukkit issue with teleporting during login)
-			// because the world takes a while to load after login, he'll never
-			// know he was teleported
+			// spawn in their home region by default.
+			// if configured as such, teleport him there in a couple of seconds
 			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion);
 			PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
 			if (PopulationDensity.instance.newPlayersSpawnInHomeRegion && joiningPlayer.getLocation().distanceSquared(joiningPlayer.getWorld().getSpawnLocation()) < 625) 
 			{
 				PlaceNewPlayerTask task = new PlaceNewPlayerTask(joiningPlayer, playerData.homeRegion);
-				PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 20L * 3 /*about 3 seconds*/);
+				PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 2000L);
+			}
+			
+			// otherwise allow other plugins to control spawning a new player
+			else
+			{
+			    // unless pop density is configured to force a precise world spawn point
+			    if(PopulationDensity.instance.preciseWorldSpawn)
+			    {
+			        TeleportPlayerTask task = new TeleportPlayerTask(joiningPlayer, joiningPlayer.getWorld().getSpawnLocation());
+			        PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 1L);
+			    }
+			    
+			    // always remove monsters around the new player's spawn point to prevent ambushes
+			    PopulationDensity.removeMonstersAround(joiningPlayer.getWorld().getSpawnLocation());
 			}
 
 			return;
@@ -295,10 +308,17 @@ public class PlayerEventHandler implements Listener {
 
 	// when a player respawns after death...
 	@EventHandler(ignoreCancelled = true)
-	public void onPlayerRespawn(PlayerRespawnEvent respawnEvent) {
+	public void onPlayerRespawn(PlayerRespawnEvent respawnEvent)
+	{
 		if (!PopulationDensity.instance.respawnInHomeRegion)
-			return;
-
+		{
+		    if(PopulationDensity.ManagedWorld == respawnEvent.getRespawnLocation().getWorld())
+		    {
+		        PopulationDensity.removeMonstersAround(respawnEvent.getRespawnLocation());
+		    }
+		    return;
+		}
+		
 		Player player = respawnEvent.getPlayer();
 		PlayerData playerData = this.dataStore.getPlayerData(player);
 
@@ -314,6 +334,8 @@ public class PlayerEventHandler implements Listener {
 			homeRegionCenter.setY(PopulationDensity.ManagedWorld
 					.getHighestBlockYAt(homeRegionCenter) + 2);
 			respawnEvent.setRespawnLocation(homeRegionCenter);
+			
+			PopulationDensity.removeMonstersAround(homeRegionCenter);
 		}
 	}
 }

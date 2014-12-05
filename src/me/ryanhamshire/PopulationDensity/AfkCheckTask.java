@@ -47,8 +47,9 @@ public class AfkCheckTask implements Runnable
 		}
 		catch(IllegalArgumentException exception){}
 		
-		int playersOnline = PopulationDensity.instance.getServer().getOnlinePlayers().length;
-		if(!player.hasPermission("populationdensity.idle") && kick && PopulationDensity.instance.minimumPlayersOnlineForIdleBoot <= playersOnline)
+		int playersOnline = PopulationDensity.instance.getServer().getOnlinePlayers().size();
+		if(!player.hasPermission("populationdensity.idle") && kick && 
+		   PopulationDensity.instance.getServer().getMaxPlayers() - PopulationDensity.instance.reservedSlotsForAdmins - 2 <= playersOnline)
 		{
 			PopulationDensity.AddLogEntry("Kicked " + player.getName() + " for idling.");
 			player.kickPlayer("Kicked for idling, to make room for active players.");

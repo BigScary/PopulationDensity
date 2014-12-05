@@ -18,6 +18,10 @@
 
 package me.ryanhamshire.PopulationDensity;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -25,10 +29,23 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
 public class BlockEventHandler implements Listener 
 {
+    private static List<Material> alwaysBreakableMaterials = Arrays.asList(
+        Material.LONG_GRASS,
+        Material.DOUBLE_PLANT,
+        Material.LOG,
+        Material.LOG_2,
+        Material.LEAVES,
+        Material.LEAVES_2,
+        Material.RED_ROSE,
+        Material.YELLOW_FLOWER,
+        Material.SNOW_BLOCK
+    );
+    
 	//when a player breaks a block...
 	@EventHandler(ignoreCancelled = true)
 	public void onBlockBreak(BlockBreakEvent breakEvent)
@@ -48,11 +65,14 @@ public class BlockEventHandler implements Listener
 		//region posts are at sea level at the lowest, so no need to check build permissions under that
 		if(blockLocation.getBlockY() < PopulationDensity.instance.minimumRegionPostY) return;
 		
+		//whitelist for blocks which can always be broken (grass cutting, tree chopping)
+		if(BlockEventHandler.alwaysBreakableMaterials.contains(block.getType())) return;
+		
 		RegionCoordinates blockRegion = RegionCoordinates.fromLocation(blockLocation); 
 		
 		//if too close to (or above) region post, send an error message
 		//note the ONLY way to edit around a region post is to have special permission
-		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion))
+		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, 2))
 		{
 			if(PopulationDensity.instance.buildRegionPosts)
 				player.sendMessage("You can't break blocks this close to the region post.");
@@ -84,7 +104,7 @@ public class BlockEventHandler implements Listener
 		RegionCoordinates blockRegion = RegionCoordinates.fromLocation(blockLocation); 
 		
 		//if too close to (or above) region post, send an error message
-		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion))
+		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, 2))
 		{
 			if(PopulationDensity.instance.buildRegionPosts)
 				player.sendMessage("You can't build this close to the region post.");
@@ -108,9 +128,25 @@ public class BlockEventHandler implements Listener
 		}
 	}
 	
+	//when a player damages a block...
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockDamage(BlockDamageEvent damageEvent)
+    {
+        Player player = damageEvent.getPlayer();
+        
+        Block block = damageEvent.getBlock();
+        if(player == null || (block.getType() != Material.WALL_SIGN && block.getType() != Material.SIGN_POST)) return;
+        
+        //if the player is not in managed world, do nothing
+        if(!player.getWorld().equals(PopulationDensity.ManagedWorld)) return;
+        
+        if(!this.nearRegionPost(block.getLocation(), RegionCoordinates.fromLocation(block.getLocation()), 1)) return;
+        
+        player.sendMessage(ChatColor.GREEN + "Region post help and commands: " + ChatColor.AQUA + "http://bit.ly/mcregions");
+    }
+	
 	//determines whether or not you're "near" a region post
-	//has to be pretty restrictive to make grief via lava difficult to pull off
-	private boolean nearRegionPost(Location location, RegionCoordinates region)
+	private boolean nearRegionPost(Location location, RegionCoordinates region, int howClose)
 	{
 		Location postLocation = PopulationDensity.getRegionCenter(region);
 		
@@ -120,11 +156,11 @@ public class BlockEventHandler implements Listener
 		//Also...  lava from above would be bad.
 		//Why not below?  Because I can't imagine mining beneath a post as an avenue for griefing. 
 		
-		return (	location.getBlockX() > postLocation.getBlockX() - 10 &&
-					location.getBlockX() < postLocation.getBlockX() + 10 &&
-					location.getBlockZ() > postLocation.getBlockZ() - 10 &&
-					location.getBlockZ() < postLocation.getBlockZ() + 10 &&
-					location.getBlockY() > PopulationDensity.ManagedWorld.getHighestBlockYAt(postLocation) - 5
+		return (	location.getBlockX() >= postLocation.getBlockX() - howClose &&
+					location.getBlockX() <= postLocation.getBlockX() + howClose &&
+					location.getBlockZ() >= postLocation.getBlockZ() - howClose &&
+					location.getBlockZ() <= postLocation.getBlockZ() + howClose &&
+					location.getBlockY() >= PopulationDensity.ManagedWorld.getHighestBlockYAt(postLocation) - 4
 				);
 	}
 }

@@ -3,11 +3,12 @@ import java.util.Calendar;
 import java.util.Date;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 public class PlayerData 
 {
 	public RegionCoordinates homeRegion = null;	
-	public RegionCoordinates regionInvitation = null;
+	public Player inviter = null;
 	
 	//afk-related variables
 	public Location lastObservedLocation = null;

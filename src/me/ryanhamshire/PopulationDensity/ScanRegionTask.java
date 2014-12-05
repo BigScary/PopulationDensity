@@ -119,7 +119,8 @@ public class ScanRegionTask implements Runnable
 					)
 			{
 				//if it's a valuable resource, count it
-				if(material == Material.LOG) woodCount++;
+				if      (material == Material.LOG) woodCount++;
+				else if (material == Material.LOG_2) woodCount++;
 				else if (material == Material.COAL_ORE) coalCount++;
 				else if (material == Material.IRON_ORE) ironCount++;
 				else if (material == Material.GOLD_ORE) goldCount++;
@@ -146,7 +147,8 @@ public class ScanRegionTask implements Runnable
 						material != Material.RED_MUSHROOM &&
 						material != Material.RED_ROSE &&
 						material != Material.LEAVES &&
-						material != Material.LOG &&
+				        material != Material.LEAVES_2 &&
+		                material != Material.LOG &&
 						material != Material.LONG_GRASS &&
 						material != Material.SAND &&
 						material != Material.SANDSTONE &&
@@ -223,25 +225,25 @@ public class ScanRegionTask implements Runnable
 		logEntries.add("");								
 		logEntries.add("Region Scan Results :");
 		logEntries.add("");				
-		logEntries.add("         Wood :" + woodCount + "  (Minimum: 200)");
+		logEntries.add("         Wood :" + woodCount + "  (Minimum: " + PopulationDensity.instance.woodMinimum + ")");
 		logEntries.add("         Coal :" + coalCount);
 		logEntries.add("         Iron :" + ironCount);
 		logEntries.add("         Gold :" + goldCount);
 		logEntries.add("     Redstone :" + redstoneCount);
 		logEntries.add("      Diamond :" + diamondCount);
-		logEntries.add("Player Blocks :" + playerBlocks + "  (Maximum: " + (PopulationDensity.instance.densityRatio * 15000) + ")");
+		logEntries.add("Player Blocks :" + playerBlocks + "  (Maximum: " + (PopulationDensity.instance.densityRatio * 50000) + ")");
 		logEntries.add("");
-		logEntries.add(" Resource Score : " + resourceScore + "  (Minimum: 200)");
+		logEntries.add(" Resource Score : " + resourceScore + "  (Minimum: " + PopulationDensity.instance.resourceMinimum + ")");
 		logEntries.add("");								
 		
 		//if NOT sufficient resources for a good start
-		if(resourceScore < 200 || woodCount < 200 || playerBlocks > 15000 * PopulationDensity.instance.densityRatio)
+		if(resourceScore < PopulationDensity.instance.resourceMinimum || woodCount < PopulationDensity.instance.woodMinimum || playerBlocks > 50000 * PopulationDensity.instance.densityRatio)
 		{					
-			if(resourceScore < 200 || woodCount < 200)
+			if(resourceScore < PopulationDensity.instance.resourceMinimum || woodCount < PopulationDensity.instance.woodMinimum)
 			{
 				logEntries.add("Summary: Insufficient near-surface resources to support new players.");			
 			}
-			else if(playerBlocks > 15000 * PopulationDensity.instance.densityRatio)
+			else if(playerBlocks > 50000 * PopulationDensity.instance.densityRatio)
 			{
 				logEntries.add("Summary: Region seems overcrowded.");			
 			}
