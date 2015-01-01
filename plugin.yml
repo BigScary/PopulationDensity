@@ -52,6 +52,9 @@ commands:
       description: Sets the login priority for a player.
       usage: /LoginPriority <player name> <priority, 0 - 100>
       permission: populationdensity.setloginpriority
+   randomregion:
+      description: Teleports the player to a random region.
+      usage: /randomregion
 permissions:
     populationdensity.*:
         description: Grants all administrative privileges.

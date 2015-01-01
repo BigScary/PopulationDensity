@@ -619,6 +619,24 @@ public class PopulationDensity extends JavaPlugin
 				return true;
 			}
 		}
+		
+		else if(cmd.getName().equalsIgnoreCase("randomregion") && player != null)
+		{
+		    if(!this.playerCanTeleport(player, false)) return true;
+       
+		    RegionCoordinates randomRegion = this.dataStore.getRandomRegion(RegionCoordinates.fromLocation(player.getLocation()));
+       
+		    if(randomRegion == null)
+		    {
+		        player.sendMessage("Sorry, you're in the only region so far.  Over time, more regions will open.");
+		    }
+		    else
+		    {           
+		        this.TeleportPlayer(player, randomRegion, false);
+		    }
+       
+		    return true;
+		}
 
 		return false;
 	}

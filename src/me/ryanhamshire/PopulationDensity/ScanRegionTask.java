@@ -231,19 +231,19 @@ public class ScanRegionTask implements Runnable
 		logEntries.add("         Gold :" + goldCount);
 		logEntries.add("     Redstone :" + redstoneCount);
 		logEntries.add("      Diamond :" + diamondCount);
-		logEntries.add("Player Blocks :" + playerBlocks + "  (Maximum: " + (PopulationDensity.instance.densityRatio * 50000) + ")");
+		logEntries.add("Player Blocks :" + playerBlocks + "  (Maximum: " + (PopulationDensity.instance.densityRatio * 40000) + ")");
 		logEntries.add("");
 		logEntries.add(" Resource Score : " + resourceScore + "  (Minimum: " + PopulationDensity.instance.resourceMinimum + ")");
 		logEntries.add("");								
 		
 		//if NOT sufficient resources for a good start
-		if(resourceScore < PopulationDensity.instance.resourceMinimum || woodCount < PopulationDensity.instance.woodMinimum || playerBlocks > 50000 * PopulationDensity.instance.densityRatio)
+		if(resourceScore < PopulationDensity.instance.resourceMinimum || woodCount < PopulationDensity.instance.woodMinimum || playerBlocks > 40000 * PopulationDensity.instance.densityRatio)
 		{					
 			if(resourceScore < PopulationDensity.instance.resourceMinimum || woodCount < PopulationDensity.instance.woodMinimum)
 			{
 				logEntries.add("Summary: Insufficient near-surface resources to support new players.");			
 			}
-			else if(playerBlocks > 50000 * PopulationDensity.instance.densityRatio)
+			else if(playerBlocks > 40000 * PopulationDensity.instance.densityRatio)
 			{
 				logEntries.add("Summary: Region seems overcrowded.");			
 			}
