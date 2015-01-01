@@ -34,7 +34,7 @@ public class ScanOpenRegionTask implements Runnable
 					if(entity instanceof Animals)
 					{
 						animalCount++;
-						if(animalCount > 12)
+						if(animalCount > 50)
 						{
 							entity.remove();
 						}
@@ -43,7 +43,7 @@ public class ScanOpenRegionTask implements Runnable
 					else if(entity instanceof Villager)
 					{
 						villagerCount++;
-						if(villagerCount > 8)
+						if(villagerCount > 50)
 						{
 							entity.remove();							
 						}
@@ -61,7 +61,7 @@ public class ScanOpenRegionTask implements Runnable
 					else if(entity instanceof Item)
 					{
 						itemCount++;
-						if(itemCount > 25)
+						if(itemCount > 50)
 						{
 							entity.remove();
 						}
