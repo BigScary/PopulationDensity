@@ -95,6 +95,8 @@ public class PopulationDensity extends JavaPlugin
 	public String [] eastCustomSignContent;
 	public String [] westCustomSignContent;
 
+    public int postProtectionRadius;
+
 	public synchronized static void AddLogEntry(String entry)
 	{
 		log.info("PopDensity: " + entry);
@@ -155,6 +157,7 @@ public class PopulationDensity extends JavaPlugin
 		this.preciseWorldSpawn = config.getBoolean("PopulationDensity.PreciseWorldSpawn", false);
 		this.woodMinimum = config.getInt("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", 200);
 		this.resourceMinimum = config.getInt("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", 200);
+		this.postProtectionRadius = config.getInt("PopulationDensity.PostProtectionDistance", 2);
 		
 		//and write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
@@ -180,6 +183,7 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.PreciseWorldSpawn", this.preciseWorldSpawn);
 		config.set("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", this.woodMinimum);
 		config.set("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", this.resourceMinimum);
+		config.set("PopulationDensity.PostProtectionDistance", this.postProtectionRadius);
 		
 		//this is a combination load/preprocess/save for custom signs on the region posts
 		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
