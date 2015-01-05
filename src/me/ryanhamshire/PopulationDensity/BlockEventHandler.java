@@ -72,7 +72,7 @@ public class BlockEventHandler implements Listener
 		
 		//if too close to (or above) region post, send an error message
 		//note the ONLY way to edit around a region post is to have special permission
-		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, 2))
+		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, PopulationDensity.instance.postProtectionRadius))
 		{
 			if(PopulationDensity.instance.buildRegionPosts)
 				player.sendMessage("You can't break blocks this close to the region post.");
@@ -104,7 +104,7 @@ public class BlockEventHandler implements Listener
 		RegionCoordinates blockRegion = RegionCoordinates.fromLocation(blockLocation); 
 		
 		//if too close to (or above) region post, send an error message
-		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, 2))
+		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, PopulationDensity.instance.postProtectionRadius))
 		{
 			if(PopulationDensity.instance.buildRegionPosts)
 				player.sendMessage("You can't build this close to the region post.");
