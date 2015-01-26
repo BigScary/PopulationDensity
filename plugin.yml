@@ -55,6 +55,17 @@ commands:
    randomregion:
       description: Teleports the player to a random region.
       usage: /randomregion
+   thinentities:
+      description: Forces entity thinning to run immediately.
+      usage: /thinentities
+      permission: populationdensity.forcethinning
+   simlag:
+      description: Simulates lag.  Intended for testing - do not use!
+      usage: /simlag <ticksPerSecond>
+      permission: populationdensity.simulatelag
+   lag:
+      description: Checks for server CPU lag.
+      usage: /lag
 permissions:
     populationdensity.*:
         description: Grants all administrative privileges.
@@ -65,6 +76,7 @@ permissions:
             populationdensity.idle: true
             populationdensity.adminlogin: true
             populationdensity.setloginpriority: true
+            populationdensity.forcethinning: true
     populationdensity.newestregion:
         description: Grants permission to use /NewestRegion.
         default: op
@@ -91,4 +103,10 @@ permissions:
         default: false
     populationdensity.setloginpriority:
         description: Grants a player permission to use /SetLoginPriority.
+        default: op
+    populationdensity.forcethinning:
+        description: Grants a player permission to use /ThinEntities.
+        default: op
+    populationdensity.simulatelag:
+        description: Grants a player permission to use /SimLag.
         default: op

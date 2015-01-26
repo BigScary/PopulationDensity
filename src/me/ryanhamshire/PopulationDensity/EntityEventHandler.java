@@ -18,9 +18,14 @@
 
 package me.ryanhamshire.PopulationDensity;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Animals;
@@ -49,7 +54,29 @@ import org.bukkit.inventory.ItemStack;
 
 public class EntityEventHandler implements Listener
 {
-	//when an entity (includes both dynamite and creepers) explodes...
+    //block types monsters may spawn on when grinders are disabled
+    private HashMap<Environment, HashSet<Material>> allowedSpawnBlocks = new HashMap<Environment, HashSet<Material>>();  
+    
+	public EntityEventHandler()
+	{
+	    this.allowedSpawnBlocks.put(Environment.NORMAL, new HashSet<Material>(Arrays.asList(
+	        Material.GRASS,
+	        Material.SAND,
+	        Material.GRAVEL,
+	        Material.STONE,
+	        Material.MOSSY_COBBLESTONE,
+	        Material.OBSIDIAN)));
+	    
+	    this.allowedSpawnBlocks.put(Environment.NETHER, new HashSet<Material>(Arrays.asList(
+            Material.NETHERRACK,
+            Material.NETHER_BRICK)));
+	    
+	    this.allowedSpawnBlocks.put(Environment.THE_END, new HashSet<Material>(Arrays.asList(
+            Material.ENDER_STONE,
+            Material.OBSIDIAN)));
+	}
+    
+    //when an entity (includes both dynamite and creepers) explodes...
 	@EventHandler(ignoreCancelled = true)
 	public void onEntityExplode(EntityExplodeEvent explodeEvent)
 	{		
@@ -159,76 +186,99 @@ public class EntityEventHandler implements Listener
 	
 	private int respawnAnimalCounter = 1;
 	
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 	public void onEntitySpawn(CreatureSpawnEvent event)
 	{
-		//do nothing for non-natural spawns
-		if(event.getSpawnReason() != SpawnReason.NATURAL) return;
-		
-		if(PopulationDensity.ManagedWorld == null || event.getLocation().getWorld() != PopulationDensity.ManagedWorld) return;
-		
-		//when an animal naturally spawns, grow grass around it
-		Entity entity = event.getEntity();
-		if(entity instanceof Animals && PopulationDensity.instance.regrowGrass)
+	    SpawnReason reason = event.getSpawnReason();
+	    Entity entity = event.getEntity();
+	    
+	    //if lag has prompted PD to turn off monster grinders, limit spawns
+	    if(PopulationDensity.grindersStopped)
 		{
-			this.regrow(entity.getLocation().getBlock(), 4);
+		    if(reason == SpawnReason.NETHER_PORTAL || reason == SpawnReason.SPAWNER)
+		    {
+		        event.setCancelled(true);
+		        return;
+		    }
+		    
+		    else if(reason == SpawnReason.NATURAL && entity instanceof Monster)
+		    {
+		        HashSet<Material> allowedBlockTypes = this.allowedSpawnBlocks.get(entity.getWorld().getEnvironment());
+		        if(!allowedBlockTypes.contains(entity.getLocation().getBlock().getRelative(BlockFace.DOWN).getType()))
+		        {
+		            event.setCancelled(true);
+		            return;
+		        }
+		    }
 		}
-		
-		//when a monster spawns, sometimes spawn animals too
-		if(entity instanceof Monster && PopulationDensity.instance.respawnAnimals)
+	    
+	    //natural spawns may cause animal spawns to keep new player resources available
+	    if(reason == SpawnReason.NATURAL)
 		{
-			//only do this if the spawn is in the newest region
-			if(!PopulationDensity.instance.dataStore.getOpenRegion().equals(RegionCoordinates.fromLocation(entity.getLocation()))) return;				
-			
-			//if it's on grass, there's a 1/100 chance it will also spawn a group of animals
-			Block underBlock = event.getLocation().getBlock().getRelative(BlockFace.DOWN);
-			if(underBlock.getType() == Material.GRASS && --this.respawnAnimalCounter == 0)
-			{
-				this.respawnAnimalCounter = 100;
-				
-				//check the chunk for other animals
-				Chunk chunk = entity.getLocation().getChunk();
-				Entity [] entities = chunk.getEntities();
-				for(int i = 0; i < entities.length; i++)
-				{
-					if(entity instanceof Animals) return;
-				}
-				
-				EntityType animalType = null;
-				
-				//decide what to spawn based on the type of monster
-				if(entity instanceof Creeper)
-				{
-					animalType = EntityType.COW;
-				}
-				else if(entity instanceof Zombie)
-				{
-					animalType = EntityType.CHICKEN;
-				}
-				else if(entity instanceof Spider)
-				{
-					animalType = EntityType.PIG;
-				}
-				else if(entity instanceof Skeleton)
-				{
-					animalType = EntityType.SHEEP;
-				}
-				else if(entity instanceof Enderman)
-                {
-                    if(Math.random() > 0.5)
-                        animalType = EntityType.HORSE;
-                    else
-                        animalType = EntityType.WOLF;
-                }
-				
-				//spawn an animal at the entity's location and regrow some grass
-				if(animalType != null)
-				{
-					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
-					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
-					this.regrow(entity.getLocation().getBlock(), 4);
-				}
-			}
+    		if(PopulationDensity.ManagedWorld == null || event.getLocation().getWorld() != PopulationDensity.ManagedWorld) return;
+    		
+    		//when an animal naturally spawns, grow grass around it
+    		if(entity instanceof Animals && PopulationDensity.instance.regrowGrass)
+    		{
+    			this.regrow(entity.getLocation().getBlock(), 4);
+    		}
+    		
+    		//when a monster spawns, sometimes spawn animals too
+    		if(entity instanceof Monster && PopulationDensity.instance.respawnAnimals)
+    		{
+    			//only do this if the spawn is in the newest region
+    			if(!PopulationDensity.instance.dataStore.getOpenRegion().equals(RegionCoordinates.fromLocation(entity.getLocation()))) return;				
+    			
+    			//if it's on grass, there's a 1/100 chance it will also spawn a group of animals
+    			Block underBlock = event.getLocation().getBlock().getRelative(BlockFace.DOWN);
+    			if(underBlock.getType() == Material.GRASS && --this.respawnAnimalCounter == 0)
+    			{
+    				this.respawnAnimalCounter = 100;
+    				
+    				//check the chunk for other animals
+    				Chunk chunk = entity.getLocation().getChunk();
+    				Entity [] entities = chunk.getEntities();
+    				for(int i = 0; i < entities.length; i++)
+    				{
+    					if(entity instanceof Animals) return;
+    				}
+    				
+    				EntityType animalType = null;
+    				
+    				//decide what to spawn based on the type of monster
+    				if(entity instanceof Creeper)
+    				{
+    					animalType = EntityType.COW;
+    				}
+    				else if(entity instanceof Zombie)
+    				{
+    					animalType = EntityType.CHICKEN;
+    				}
+    				else if(entity instanceof Spider)
+    				{
+    					animalType = EntityType.PIG;
+    				}
+    				else if(entity instanceof Skeleton)
+    				{
+    					animalType = EntityType.SHEEP;
+    				}
+    				else if(entity instanceof Enderman)
+                    {
+                        if(Math.random() > 0.5)
+                            animalType = EntityType.HORSE;
+                        else
+                            animalType = EntityType.WOLF;
+                    }
+    				
+    				//spawn an animal at the entity's location and regrow some grass
+    				if(animalType != null)
+    				{
+    					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
+    					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
+    					this.regrow(entity.getLocation().getBlock(), 4);
+    				}
+    			}
+    		}
 		}
 	}
 	

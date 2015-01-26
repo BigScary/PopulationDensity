@@ -63,6 +63,14 @@ public class PopulationDensity extends JavaPlugin
 	//this handles data storage, like player and region data
 	public DataStore dataStore;
 	
+	//tracks server perforamnce
+	static float serverTicksPerSecond = 20;
+	static int minutesLagging = 0;
+	
+	//lag-reducing measures
+	static boolean grindersStopped = false;
+	static boolean bootingIdlePlayersForLag = false;
+	
 	//user configuration, loaded/saved from a config.yml
 	public boolean allowTeleportation;
 	public boolean teleportFromAnywhere;
@@ -641,6 +649,58 @@ public class PopulationDensity extends JavaPlugin
        
 		    return true;
 		}
+		
+		else if(cmd.getName().equalsIgnoreCase("thinentities"))
+		{
+		    if(player != null)
+		    {
+		        player.sendMessage("Thinning running.  Check logs for detailed results.");
+		    }
+		    
+		    MonitorPerformanceTask.thinEntities();
+		    
+		    return true;
+		}
+		
+		else if(cmd.getName().equalsIgnoreCase("simlag") && player == null)
+        {
+            float tps;
+		    try
+		    {
+		        tps = Float.parseFloat(args[0]);
+		    }
+		    catch(NumberFormatException e)
+		    {
+		        return false;
+		    }
+		    
+		    MonitorPerformanceTask.treatLag(tps);
+            return true;
+        }
+		
+		else if(cmd.getName().equalsIgnoreCase("lag"))
+        {
+            String message = "Current server performance score is " + Math.round((serverTicksPerSecond / 20) * 100) + "%.";
+		    if(serverTicksPerSecond > 19)
+            {
+                message = "The server is running at normal speed.  If you're experiencing lag, check your graphics settings and internet connection.  " + message;
+            }
+		    else
+		    {
+		        message += "  The server is actively working to reduce lag - please be patient while automatic lag reduction takes effect.";
+		    }
+            
+            if(player != null)
+            {
+                player.sendMessage(ChatColor.GOLD + message);
+            }
+            else
+            {
+                AddLogEntry(message);
+            }
+		    
+		    return true;
+        }
 
 		return false;
 	}
