@@ -482,6 +482,7 @@ public class DataStore
 		//race condition issue: chunks say they're loaded when they're not.  if it looks like the chunk isn't loaded, try again (up to five times)
 		int retriesLeft = 5;
 		boolean tryAgain;
+		Material blockType;
 		do
 		{
 			tryAgain = false;
@@ -490,7 +491,6 @@ public class DataStore
 			y = PopulationDensity.ManagedWorld.getHighestBlockYAt(x, z) + 1;
 			
 			//posts fall through trees, snow, and any existing post looking for the ground
-			Material blockType;
 			do
 			{
 				blockType = PopulationDensity.ManagedWorld.getBlockAt(x, --y, z).getType();
@@ -502,10 +502,8 @@ public class DataStore
 					blockType == Material.LONG_GRASS||
 					blockType == Material.LOG       ||
 			        blockType == Material.LOG_2     ||
-					blockType == Material.GLOWSTONE ||
 					blockType == Material.SNOW 		||
-					blockType == Material.VINE 		||					
-					blockType == Material.SIGN_POST
+					blockType == Material.VINE					
 					));
 			
 			//if final y value is extremely small, it's probably wrong
@@ -520,6 +518,15 @@ public class DataStore
 			}
 		}while(tryAgain);
 				
+		if(blockType == Material.SIGN_POST)
+		{
+		    y -= 4;
+		}
+		else if(blockType == Material.GLOWSTONE || (blockType == Material.getMaterial(PopulationDensity.instance.postTopperId)))
+		{
+		    y -= 3;
+		}
+		
 		//if y value is under sea level, correct it to sea level (no posts should be that difficult to find)
 		if(y < PopulationDensity.instance.minimumRegionPostY)
 		{
@@ -532,7 +539,7 @@ public class DataStore
 		{
 			for(int z1 = z - 2; z1 <= z + 2; z1++)
 			{
-				for(int y1 = y + 1; y1 <= y + 15; y1++)
+				for(int y1 = y + 1; y1 <= y + 5; y1++)
 				{
 					Block block = PopulationDensity.ManagedWorld.getBlockAt(x1, y1, z1);
 					if(block.getType() == Material.SIGN_POST || block.getType() == Material.SIGN || block.getType() == Material.WALL_SIGN)
@@ -553,48 +560,58 @@ public class DataStore
 			}
 		}	
 		
-		//build a glowpost in the center
-		for(int y1 = y; y1 <= y + 3; y1++)
-		{
-			PopulationDensity.ManagedWorld.getBlockAt(x, y1, z).setType(Material.GLOWSTONE);
-		}
+		//build top block
+        PopulationDensity.ManagedWorld.getBlockAt(x, y + 3, z).setTypeIdAndData(PopulationDensity.instance.postTopperId, PopulationDensity.instance.postTopperData.byteValue(), true);
 		
-		//build a stone platform
+		//build outer platform
 		for(int x1 = x - 2; x1 <= x + 2; x1++)
 		{
 			for(int z1 = z - 2; z1 <= z + 2; z1++)
 			{
-				PopulationDensity.ManagedWorld.getBlockAt(x1, y, z1).setType(Material.SMOOTH_BRICK);
+				PopulationDensity.ManagedWorld.getBlockAt(x1, y, z1).setTypeIdAndData(PopulationDensity.instance.outerPlatformId, PopulationDensity.instance.outerPlatformData.byteValue(), true);
 			}
 		}
 		
-		//if the region has a name, build a sign on top
+		//build inner platform
+        for(int x1 = x - 1; x1 <= x + 1; x1++)
+        {
+            for(int z1 = z - 1; z1 <= z + 1; z1++)
+            {
+                PopulationDensity.ManagedWorld.getBlockAt(x1, y, z1).setTypeIdAndData(PopulationDensity.instance.innerPlatformId, PopulationDensity.instance.innerPlatformData.byteValue(), true);
+            }
+        }
+        
+        //build lower center blocks
+        for(int y1 = y; y1 <= y + 2; y1++)
+        {
+            PopulationDensity.ManagedWorld.getBlockAt(x, y1, z).setTypeIdAndData(PopulationDensity.instance.postId, PopulationDensity.instance.postData.byteValue(), true);
+        }
+		
+		//build a sign on top with region name (or wilderness if no name)
 		String regionName = this.getRegionName(region);
-		if(regionName != null)
-		{		
-			regionName = PopulationDensity.capitalize(regionName);
-			Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 4, z);
-			block.setType(Material.SIGN_POST);
-			
-			org.bukkit.block.Sign sign = (org.bukkit.block.Sign)block.getState();
-			sign.setLine(1, PopulationDensity.capitalize(regionName));
-			sign.setLine(2, "Region");
-			sign.update();
-		}
+		if(regionName == null) regionName = "Wilderness";
+		regionName = PopulationDensity.capitalize(regionName);
+		Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 4, z);
+		block.setType(Material.SIGN_POST);
+		
+		org.bukkit.block.Sign sign = (org.bukkit.block.Sign)block.getState();
+		sign.setLine(1, PopulationDensity.capitalize(regionName));
+		sign.setLine(2, "Region");
+		sign.update();
 		
 		//add a sign for the region to the south
 		regionName = this.getRegionName(new RegionCoordinates(region.x + 1, region.z));
 		if(regionName == null) regionName = "Wilderness";
 		regionName = PopulationDensity.capitalize(regionName);
 		
-		Block block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 2, z - 1);
+		block = PopulationDensity.ManagedWorld.getBlockAt(x, y + 2, z - 1);
 		
 		org.bukkit.material.Sign signData = new org.bukkit.material.Sign(Material.WALL_SIGN);
 		signData.setFacingDirection(BlockFace.NORTH);
 		
 		block.setTypeIdAndData(Material.WALL_SIGN.getId(), signData.getData(), false);
 		
-		org.bukkit.block.Sign sign = (org.bukkit.block.Sign)block.getState();
+		sign = (org.bukkit.block.Sign)block.getState();
 		
 		sign.setLine(0, "<--");
 		sign.setLine(1, regionName);

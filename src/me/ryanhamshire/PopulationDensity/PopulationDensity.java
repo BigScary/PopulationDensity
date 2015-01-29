@@ -19,6 +19,7 @@
 package me.ryanhamshire.PopulationDensity;
 import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -94,6 +95,14 @@ public class PopulationDensity extends JavaPlugin
 	public boolean preciseWorldSpawn;
 	public int woodMinimum;
     public int resourceMinimum;
+    public Integer postTopperId = 89;
+    public Integer postTopperData = 0;
+    public Integer postId = 89;
+    public Integer postData = 0;
+    public Integer outerPlatformId = 98;
+    public Integer outerPlatformData = 0;
+    public Integer innerPlatformId = 98;
+    public Integer innerPlatformData = 0;
 	
 	public int minimumRegionPostY;
 	
@@ -167,6 +176,37 @@ public class PopulationDensity extends JavaPlugin
 		this.resourceMinimum = config.getInt("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", 200);
 		this.postProtectionRadius = config.getInt("PopulationDensity.PostProtectionDistance", 2);
 		
+		String topper = config.getString("PopulationDensity.PostDesign.TopBlock", "89:0");  //default glowstone
+		String post = config.getString("PopulationDensity.PostDesign.PostBlocks", "89:0");
+		String outerPlat = config.getString("PopulationDensity.PostDesign.PlatformOuterRing", "98:0");  //default stone brick
+		String innerPlat = config.getString("PopulationDensity.PostDesign.PlatformInnerRing", "98:0");
+		
+		SimpleEntry<Integer, Integer> result;
+		result = this.processMaterials(topper);
+		if(result != null)
+		{
+		    this.postTopperId = result.getKey();
+		    this.postTopperData = result.getValue();
+		}
+		result = this.processMaterials(post);
+		if(result != null)
+        {
+            this.postId = result.getKey();
+            this.postData = result.getValue();
+        }
+		result = this.processMaterials(outerPlat);
+		if(result != null)
+        {
+            this.outerPlatformId = result.getKey();
+            this.outerPlatformData = result.getValue();
+        }
+		result = this.processMaterials(innerPlat);
+		if(result != null)
+        {
+            this.innerPlatformId = result.getKey();
+            this.innerPlatformData = result.getValue();
+        }
+		
 		//and write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
 		config.set("PopulationDensity.RespawnInHomeRegion", this.respawnInHomeRegion);
@@ -192,6 +232,10 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", this.woodMinimum);
 		config.set("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", this.resourceMinimum);
 		config.set("PopulationDensity.PostProtectionDistance", this.postProtectionRadius);
+		config.set("PopulationDensity.PostDesign.TopBlock", topper);
+        config.set("PopulationDensity.PostDesign.PostBlocks", post);
+        config.set("PopulationDensity.PostDesign.PlatformOuterRing", outerPlat);
+        config.set("PopulationDensity.PostDesign.PlatformInnerRing", innerPlat);
 		
 		//this is a combination load/preprocess/save for custom signs on the region posts
 		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
@@ -1008,4 +1052,27 @@ public class PopulationDensity extends JavaPlugin
             }
         }
 	}
+	
+	private SimpleEntry<Integer, Integer> processMaterials(String string)
+	{
+        String [] elements = string.split(":");
+        if(elements.length < 2)
+        {
+            PopulationDensity.AddLogEntry("Couldn't understand config entry '" + string + "'.  Use format 'id:data'.");
+            return null;
+        }
+        
+        try
+        {
+            int id_output = Integer.parseInt(elements[0]);
+            int data_output = Integer.parseInt(elements[1]);
+            return new SimpleEntry<Integer, Integer>(id_output, data_output);
+        }
+        catch(NumberFormatException e)
+        {
+            PopulationDensity.AddLogEntry("Couldn't understand config entry '" + string + "'.  Use format 'id:data'.");
+        }
+        
+        return null;
+    }
 }
