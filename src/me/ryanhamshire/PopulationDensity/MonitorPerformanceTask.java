@@ -29,11 +29,14 @@ public class MonitorPerformanceTask implements Runnable
 	        return;
 	    }
 	    
-	    long millisecondsSinceLastExecution = System.currentTimeMillis() - lastExecutionTimestamp;
+	    long now = System.currentTimeMillis();
+	    long millisecondsSinceLastExecution = now - lastExecutionTimestamp;
 	    
 	    float tps = 1200 / (millisecondsSinceLastExecution / 1000f);
 	    
 	    treatLag(tps);
+	    
+	    lastExecutionTimestamp = now;
 	}
     
     public static void treatLag(float tps)
