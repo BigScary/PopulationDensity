@@ -299,6 +299,9 @@ public class PopulationDensity extends JavaPlugin
 		//may open and close several regions before finally leaving an "acceptable" region open
 		//this will repeat every six hours
 		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new ScanOpenRegionTask(), 5L, this.hoursBetweenScans * 60 * 60 * 20L);
+		
+		//start monitoring performance
+		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new MonitorPerformanceTask(), 1200L, 1200L);
 	}
 	
 	public String [] initializeSignContentConfig(FileConfiguration config, String configurationNode, String [] defaultLines)
