@@ -12,7 +12,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
+import org.bukkit.entity.Rabbit;
 import org.bukkit.entity.Tameable;
+import org.bukkit.material.Colorable;
 
 public class MonitorPerformanceTask implements Runnable 
 {
@@ -133,15 +135,27 @@ public class MonitorPerformanceTask implements Runnable
         {
             for(Chunk chunk : world.getLoadedChunks())
             {
-                HashMap<EntityType, Integer> entityCounter = new HashMap<EntityType, Integer>();
+                HashMap<String, Integer> entityCounter = new HashMap<String, Integer>();
                 
                 Entity [] entities = chunk.getEntities();
                 int monsterCount = 0;
                 for(Entity entity : entities)
                 {
+                    EntityType entityType = entity.getType();
                     Integer count = entityCounter.get(entity.getType());
                     if(count == null) count = 0;
-                    entityCounter.put(entity.getType(), count + 1);
+                    String entityTypeID = entity.getType().name();
+                    if(entityType == EntityType.SHEEP)
+                    {
+                        Colorable colorable = (Colorable)entity;
+                        entityTypeID += colorable.getColor().name();
+                    }
+                    else if(entityType == EntityType.RABBIT)
+                    {
+                        Rabbit rabbit = (Rabbit)entity;
+                        entityTypeID += rabbit.getRabbitType().name(); 
+                    }
+                    entityCounter.put(entityTypeID, count + 1);
                     
                     if(entity instanceof LivingEntity) totalEntities++;
                     
