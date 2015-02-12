@@ -168,13 +168,13 @@ public class DataStore
 	public void savePlayerData(OfflinePlayer player, PlayerData data)
 	{
 		//save that data in memory
-		this.playerNameToPlayerDataMap.put(player.getName(), data);
+		this.playerNameToPlayerDataMap.put(player.getUniqueId().toString(), data);
 		
 		BufferedWriter outStream = null;
 		try
 		{
 			//open the player's file
-			File playerFile = new File(playerDataFolderPath + File.separator + player.getName());
+			File playerFile = new File(playerDataFolderPath + File.separator + player.getUniqueId().toString());
 			playerFile.createNewFile();
 			outStream = new BufferedWriter(new FileWriter(playerFile));
 			
@@ -210,25 +210,33 @@ public class DataStore
 	public PlayerData getPlayerData(OfflinePlayer player)
 	{
 		//first, check the in-memory cache
-		PlayerData data = this.playerNameToPlayerDataMap.get(player.getName());
-		
+		PlayerData data = this.playerNameToPlayerDataMap.get(player.getUniqueId().toString());
+
 		if(data != null) return data;
 		
-		//if not there, try to load the player from file		
-		loadPlayerDataFromFile(player.getName());
+		//if not there, try to load the player from file using UUID		
+		loadPlayerDataFromFile(player.getUniqueId().toString(), player.getUniqueId().toString());
+
+		//check again
+		data = this.playerNameToPlayerDataMap.get(player.getUniqueId().toString());
+		
+		if(data != null) return data;
+
+		//if still not there, try player name
+		loadPlayerDataFromFile(player.getName(), player.getUniqueId().toString());
 		
 		//check again
-		data = this.playerNameToPlayerDataMap.get(player.getName());
-		
-		if(data != null) return data;
-		
-		return new PlayerData();
+        data = this.playerNameToPlayerDataMap.get(player.getUniqueId().toString());
+        
+        if(data != null) return data;
+
+        return new PlayerData();
 	}
 	
-	private void loadPlayerDataFromFile(String playerName)
+	private void loadPlayerDataFromFile(String source, String dest)
 	{
 		//load player data into memory		
-		File playerFile = new File(playerDataFolderPath + File.separator + playerName);
+		File playerFile = new File(playerDataFolderPath + File.separator + source);
 		
 		BufferedReader inStream = null;
 		try
@@ -280,7 +288,7 @@ public class DataStore
 			}
 			  
 			//shove into memory for quick access
-			this.playerNameToPlayerDataMap.put(playerName, playerData);
+			this.playerNameToPlayerDataMap.put(dest, playerData);
 		}
 		
 		//if the file isn't found, just don't do anything (probably a new-to-server player)
@@ -292,7 +300,7 @@ public class DataStore
 		//if there's any problem with the file's content, log an error message and skip it		
 		catch(Exception e)
 		{
-			 PopulationDensity.AddLogEntry("Unable to load data for player \"" + playerName + "\": " + e.getMessage());			 
+			 PopulationDensity.AddLogEntry("Unable to load data for player \"" + source + "\": " + e.getMessage());			 
 		}
 		
 		try

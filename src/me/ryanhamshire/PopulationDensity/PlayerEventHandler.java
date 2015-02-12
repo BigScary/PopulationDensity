@@ -213,42 +213,58 @@ public class PlayerEventHandler implements Listener {
 		// if the player doesn't have a home region yet (he hasn't logged in
 		// since the plugin was installed)
 		RegionCoordinates homeRegion = playerData.homeRegion;
-		if (homeRegion == null) {
-			// his home region is the open region
-			RegionCoordinates openRegion = this.dataStore.getOpenRegion();
-			playerData.homeRegion = openRegion;
-			this.dataStore.savePlayerData(joiningPlayer, playerData);
-			PopulationDensity.AddLogEntry("Assigned new player "
-					+ joiningPlayer.getName() + " to region "
-					+ this.dataStore.getRegionName(openRegion) + " at "
-					+ openRegion.toString() + ".");
-
-			// entirely new players who've not visited the server before will
-			// spawn in their home region by default.
-			// if configured as such, teleport him there in a couple of seconds
-			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion);
-			PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
-			if (PopulationDensity.instance.newPlayersSpawnInHomeRegion && joiningPlayer.getLocation().distanceSquared(joiningPlayer.getWorld().getSpawnLocation()) < 625) 
-			{
-				PlaceNewPlayerTask task = new PlaceNewPlayerTask(joiningPlayer, playerData.homeRegion);
-				PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 2000L);
-			}
-			
-			// otherwise allow other plugins to control spawning a new player
-			else
-			{
-			    // unless pop density is configured to force a precise world spawn point
-			    if(PopulationDensity.instance.preciseWorldSpawn)
-			    {
-			        TeleportPlayerTask task = new TeleportPlayerTask(joiningPlayer, joiningPlayer.getWorld().getSpawnLocation());
-			        PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 1L);
-			    }
-			    
-			    // always remove monsters around the new player's spawn point to prevent ambushes
-			    PopulationDensity.removeMonstersAround(joiningPlayer.getWorld().getSpawnLocation());
-			}
-
-			return;
+		if (homeRegion == null)
+		{
+		    // if he's never been on the server before
+		    if(!joiningPlayer.hasPlayedBefore())
+		    {
+    			// his home region is the open region
+    			RegionCoordinates openRegion = this.dataStore.getOpenRegion();
+    			playerData.homeRegion = openRegion;
+    			this.dataStore.savePlayerData(joiningPlayer, playerData);
+    			PopulationDensity.AddLogEntry("Assigned new player "
+    					+ joiningPlayer.getName() + " to region "
+    					+ this.dataStore.getRegionName(openRegion) + " at "
+    					+ openRegion.toString() + ".");
+    
+    			// entirely new players who've not visited the server before will
+    			// spawn in their home region by default.
+    			// if configured as such, teleport him there in a couple of seconds
+    			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion);
+    			PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
+    			if (PopulationDensity.instance.newPlayersSpawnInHomeRegion && joiningPlayer.getLocation().distanceSquared(joiningPlayer.getWorld().getSpawnLocation()) < 625) 
+    			{
+    				PlaceNewPlayerTask task = new PlaceNewPlayerTask(joiningPlayer, playerData.homeRegion);
+    				PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 40L);
+    			}
+    			
+    			// otherwise allow other plugins to control spawning a new player
+    			else
+    			{
+    			    // unless pop density is configured to force a precise world spawn point
+    			    if(PopulationDensity.instance.preciseWorldSpawn)
+    			    {
+    			        TeleportPlayerTask task = new TeleportPlayerTask(joiningPlayer, joiningPlayer.getWorld().getSpawnLocation());
+    			        PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 1L);
+    			    }
+    			    
+    			    // always remove monsters around the new player's spawn point to prevent ambushes
+    			    PopulationDensity.removeMonstersAround(joiningPlayer.getWorld().getSpawnLocation());
+    			}
+		    }
+		    
+		    //otherwise if he's played before, guess his home region as best we can
+		    else
+		    {
+		        if(joiningPlayer.getBedSpawnLocation() != null)
+		        {
+		            playerData.homeRegion = RegionCoordinates.fromLocation(joiningPlayer.getBedSpawnLocation());
+		        }
+		        else
+		        {
+		            playerData.homeRegion = RegionCoordinates.fromLocation(joiningPlayer.getLocation());
+		        }
+		    }
 		}
 	}
 
