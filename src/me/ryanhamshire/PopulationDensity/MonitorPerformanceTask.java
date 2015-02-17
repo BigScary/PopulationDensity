@@ -7,6 +7,7 @@ import java.util.LinkedList;
 
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -94,7 +95,7 @@ public class MonitorPerformanceTask implements Runnable
 	                logEntry += "Re-enabled monster grinders.  ";
 	        }
 	        
-	        if(removeEntities)
+	        if(removeEntities && PopulationDensity.instance.thinAnimalAndMonsterCrowds)
 	        {
 	            logEntry += "Actively scanning to remove densely-packed entities...";
 	        }
@@ -131,18 +132,19 @@ public class MonitorPerformanceTask implements Runnable
         
         int totalEntities = 0;
         int totalRemoved = 0;
+        HashMap<String, Integer> totalEntityCounter = new HashMap<String, Integer>();
         for(World world : PopulationDensity.instance.getServer().getWorlds())
         {
             for(Chunk chunk : world.getLoadedChunks())
             {
-                HashMap<String, Integer> entityCounter = new HashMap<String, Integer>();
+                HashMap<String, Integer> chunkEntityCounter = new HashMap<String, Integer>();
                 
                 Entity [] entities = chunk.getEntities();
                 int monsterCount = 0;
                 for(Entity entity : entities)
                 {
                     EntityType entityType = entity.getType();
-                    Integer count = entityCounter.get(entity.getType());
+                    Integer count = chunkEntityCounter.get(entity.getType());
                     if(count == null) count = 0;
                     String entityTypeID = entity.getType().name();
                     if(entityType == EntityType.SHEEP)
@@ -155,14 +157,25 @@ public class MonitorPerformanceTask implements Runnable
                         Rabbit rabbit = (Rabbit)entity;
                         entityTypeID += rabbit.getRabbitType().name(); 
                     }
-                    entityCounter.put(entityTypeID, count + 1);
                     
                     if(entity instanceof LivingEntity) totalEntities++;
+                    
+                    //skip any pets
+                    if(entity instanceof Tameable)
+                    {
+                        if(((Tameable)entity).isTamed()) continue;
+                    }
                     
                     //skip any entities with nameplates
                     if(entity.getCustomName() != null && entity.getCustomName() != "") continue;
                     
+                    //only specific types of animals may be removed
+                    boolean isAnimal = entity instanceof Animals;
                     EntityType type = entity.getType();
+                    if(isAnimal && !thinnableAnimals.contains(type)) continue;
+                    
+                    chunkEntityCounter.put(entityTypeID, count + 1);
+                    
                     if(type == EntityType.EXPERIENCE_ORB)
                     {
                         if(count > 15)
@@ -187,27 +200,41 @@ public class MonitorPerformanceTask implements Runnable
                             totalRemoved++;
                         }
                     }
-                    else if(entity instanceof Animals)
+                    else if(isAnimal)
                     {
                         if(count > 20 || (count > 5 && count % 5 == 1))
                         {
-                            //only specific types of animals may be removed
-                            if(!thinnableAnimals.contains(type)) continue;
-                            
-                            //skip any pets
-                            if(entity instanceof Tameable)
-                            {
-                                if(((Tameable)entity).isTamed()) continue;
-                            }
-                            
                             ((Animals) entity).setHealth(0);
                             totalRemoved++;
                         }
                     }
+                    else if(type == EntityType.PIG_ZOMBIE && entity.getWorld().getEnvironment() != Environment.NETHER)
+                    {
+                        entity.remove();
+                        totalRemoved++;
+                    }
+                }
+            
+                for(String key : chunkEntityCounter.keySet())
+                {
+                    Integer totalCounted = totalEntityCounter.get(key);
+                    if(totalCounted == null) totalCounted = 0;
+                    Integer chunkCounted = chunkEntityCounter.get(key);
+                    totalCounted += chunkCounted;
+                    totalEntityCounter.put(key, totalCounted);
                 }
             }
         }
         
         PopulationDensity.AddLogEntry("Removed " + totalRemoved + " of " + totalEntities + " entities.");
+        
+        if(PopulationDensity.minutesLagging > 5 && PopulationDensity.minutesLagging % 6 == 0)
+        {
+            PopulationDensity.AddLogEntry("Remaining living entity distribution:");
+            for(String key : totalEntityCounter.keySet())
+            {
+                PopulationDensity.AddLogEntry("  " + key + ": " + totalEntityCounter.get(key).toString());
+            }
+        }
     }
 }
