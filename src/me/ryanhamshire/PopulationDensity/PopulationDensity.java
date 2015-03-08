@@ -366,7 +366,7 @@ public class PopulationDensity extends JavaPlugin
 			
 			if(ManagedWorld == null)
 			{
-				player.sendMessage("The PopulationDensity plugin has not been properly configured.  Please update your config.yml to specify a world to manage.");
+				PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoManagedWorld);
 				return true;
 			}
 			
@@ -389,7 +389,7 @@ public class PopulationDensity extends JavaPlugin
 			    }
 			    else if(this.dataStore.getRegionName(targetPlayerData.homeRegion) == null)
 			    {
-			        player.sendMessage(targetPlayer.getName() + " lives in the wilderness.  He or she will have to /invite you.");
+			        PopulationDensity.sendMessage(player, TextMode.Err, Messages.InvitationNeeded, targetPlayer.getName());
 			        return true;
 			    }
 			    else
@@ -397,7 +397,7 @@ public class PopulationDensity extends JavaPlugin
 			        this.TeleportPlayer(player, targetPlayerData.homeRegion, false);
 			    }
 			    
-			    player.sendMessage(ChatColor.GREEN + "Teleported to " + targetPlayer.getName() + "'s home region.");
+			    PopulationDensity.sendMessage(player, TextMode.Success, Messages.VisitConfirmation, targetPlayer.getName());
 			}
 			else
 			{
@@ -405,7 +405,7 @@ public class PopulationDensity extends JavaPlugin
     			RegionCoordinates region = this.dataStore.getRegionCoordinates(args[0].toLowerCase());									
     			if(region == null)
     			{
-    				player.sendMessage(ChatColor.RED + "There's no region or online player named \"" + args[0] + "\".");
+    				PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, args[0]);
     				return true;
     			}
     			
@@ -421,7 +421,7 @@ public class PopulationDensity extends JavaPlugin
 			//check permission, if necessary
 			if(this.newestRegionRequiresPermission && !player.hasPermission("populationdensity.newestregion"))
 			{
-				player.sendMessage("You don't have permission to use that command.");
+				PopulationDensity.sendMessage(player, TextMode.Err, Messages.NeedNewestRegionPermission);
 				return true;
 			}
 			
@@ -431,7 +431,7 @@ public class PopulationDensity extends JavaPlugin
 			RegionCoordinates openRegion = this.dataStore.getOpenRegion();
 			this.TeleportPlayer(player, openRegion, false);
 			
-			player.sendMessage(ChatColor.GREEN + "Teleported to the current new player area.");
+			PopulationDensity.sendMessage(player, TextMode.Success, Messages.NewestRegionConfirmation);
 			
 			return true;
 		}
@@ -441,18 +441,18 @@ public class PopulationDensity extends JavaPlugin
 			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
 			if(currentRegion == null)
 			{
-				player.sendMessage("You're not in a region!");
+			    PopulationDensity.sendMessage(player, TextMode.Warn, Messages.NotInRegion);
 				return true;
 			}
 			
 			String regionName = this.dataStore.getRegionName(currentRegion);
 			if(regionName == null)
 			{
-				player.sendMessage(ChatColor.YELLOW + "You're in the wilderness!  This region doesn't have a name.");
+			    PopulationDensity.sendMessage(player, TextMode.Info, Messages.UnnamedRegion);
 			}
 			else
 			{
-				player.sendMessage(ChatColor.GREEN + "You're in the " + capitalize(regionName) + " region.");				
+				PopulationDensity.sendMessage(player, TextMode.Info, Messages.WhichRegion, capitalize(regionName));				
 			}
 			
 			return true;
@@ -463,7 +463,7 @@ public class PopulationDensity extends JavaPlugin
 			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
 			if(currentRegion == null)
 			{
-				player.sendMessage("You're not in a region!");
+			    PopulationDensity.sendMessage(player, TextMode.Warn, Messages.NotInRegion);
 				return true;
 			}
 			
@@ -474,7 +474,7 @@ public class PopulationDensity extends JavaPlugin
 			
 			if(name.length() > 10)
 			{
-				player.sendMessage("Region names must be at most 10 letters long.");
+				PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNamesTenLetters);
 				return true;
 			}
 			
@@ -483,20 +483,20 @@ public class PopulationDensity extends JavaPlugin
 				char c = name.charAt(i);
 				if(Character.isWhitespace(c))
 				{
-					player.sendMessage("Region names may not include spaces.");
+				    PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNamesNoSpaces);
 					return true;
 				}
 				
 				if(!Character.isLetter(c))
 				{
-					player.sendMessage("Region names may only include letters.");
+				    PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNamesOnlyLetters);
 					return true;
 				}					
 			}
 			
 			if(this.dataStore.getRegionCoordinates(name) != null)
 			{
-				player.sendMessage("There's already a region by that name.");
+			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNameConflict);
 				return true;
 			}
 			
@@ -514,7 +514,7 @@ public class PopulationDensity extends JavaPlugin
 			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
 			if(currentRegion == null)
 			{
-				player.sendMessage("You're not in a region!");
+			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.NotInRegion);
 				return true;
 			}
 			
@@ -561,7 +561,7 @@ public class PopulationDensity extends JavaPlugin
             
             if(randomRegion == null)
             {
-                player.sendMessage(ChatColor.RED + "Sorry, you're in the only region.  Over time, more regions will open.");
+                PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoMoreRegions);
             }
             else
             {           
@@ -581,14 +581,14 @@ public class PopulationDensity extends JavaPlugin
 			{
 				playerData = this.dataStore.getPlayerData(invitee);
 				playerData.inviter = player;
-				player.sendMessage(ChatColor.GREEN + "Invitation sent!  " + invitee.getName() + " can use /visit " + player.getName() + " to teleport to your home post.");
+				PopulationDensity.sendMessage(player, TextMode.Success, Messages.InviteConfirmation, invitee.getName(), player.getName());
 				
-				invitee.sendMessage(ChatColor.GREEN + player.getName() + " has invited you to visit!");
-				invitee.sendMessage(ChatColor.YELLOW + "Use /visit " + player.getName() + " to teleport there.");
+				PopulationDensity.sendMessage(invitee, TextMode.Success, Messages.InviteNotification, player.getName());
+				PopulationDensity.sendMessage(invitee, TextMode.Instr, Messages.InviteInstruction, player.getName());
 			}
 			else
 			{
-				player.sendMessage(ChatColor.RED + "There's no player named \"" + args[0] + "\" online right now.");
+			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.PlayerNotFound, args[0]);
 			}
 			
 			return true;
@@ -599,22 +599,22 @@ public class PopulationDensity extends JavaPlugin
 			//if not in the managed world, /movein doesn't make sense
 			if(!player.getWorld().equals(ManagedWorld))
 			{
-				player.sendMessage("Sorry, no one can move in here.");
+			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.NotInRegion);
 				return true;
 			}
 						
 			playerData.homeRegion = RegionCoordinates.fromLocation(player.getLocation());
 			this.dataStore.savePlayerData(player, playerData);
-			player.sendMessage(ChatColor.GREEN + "Home set to the nearest region post!");
-			player.sendMessage(ChatColor.YELLOW + "Use /Home from any region post to teleport to your home post.");
-			player.sendMessage(ChatColor.YELLOW + "Use /Invite to invite other players to teleport to your home post.");
-
+			PopulationDensity.sendMessage(player, TextMode.Success, Messages.SetHomeConfirmation);
+			PopulationDensity.sendMessage(player, TextMode.Instr, Messages.SetHomeInstruction1);
+			PopulationDensity.sendMessage(player, TextMode.Instr, Messages.SetHomeInstruction2);
+			
 			return true;
 		}
 		
 		else if(cmd.getName().equalsIgnoreCase("addregion") && player != null)
 		{			
-			player.sendMessage("Opened a new region and started a resource scan.  See console or server logs for details.");
+		    PopulationDensity.sendMessage(player, TextMode.Success, Messages.AddRegionConfirmation);
 			
 			RegionCoordinates newRegion = this.dataStore.addRegion();			
 			
@@ -625,7 +625,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("scanregion") && player != null)
 		{			
-			player.sendMessage("Started scan.  Check console or server logs for results.");
+		    PopulationDensity.sendMessage(player, TextMode.Success, Messages.ScanStartConfirmation);
 			this.scanRegion(RegionCoordinates.fromLocation(player.getLocation()), false);
 			
 			return true;
@@ -644,13 +644,13 @@ public class PopulationDensity extends JavaPlugin
 				targetPlayer = this.resolvePlayer(args[0]);
 				if(targetPlayer == null)
 				{
-					PopulationDensity.sendMessage(player, "Player \"" + args[0] + "\" not found.");
+				    PopulationDensity.sendMessage(player, TextMode.Err, Messages.PlayerNotFound, args[0]);
 					return true;
 				}
 				
 				targetPlayerData = this.dataStore.getPlayerData(targetPlayer);
 				
-				PopulationDensity.sendMessage(player, targetPlayer.getName() + "'s login priority: " + targetPlayerData.loginPriority + ".");
+				PopulationDensity.sendMessage(player, TextMode.Info, Messages.LoginPriorityCheck, targetPlayer.getName(), String.valueOf(targetPlayerData.loginPriority));
 				
 				if(args.length < 2) return false;  //usage displayed
 			
@@ -673,7 +673,7 @@ public class PopulationDensity extends JavaPlugin
 				this.dataStore.savePlayerData(targetPlayer, targetPlayerData);
 				
 				//confirmation message
-				PopulationDensity.sendMessage(player, "Set " + targetPlayer.getName() + "'s priority to " + priority + ".");
+				PopulationDensity.sendMessage(player, TextMode.Success, Messages.LoginPriorityUpdate, targetPlayer.getName(), String.valueOf(priority));
 				
 				return true;
 			}
@@ -687,7 +687,7 @@ public class PopulationDensity extends JavaPlugin
        
 		    if(randomRegion == null)
 		    {
-		        player.sendMessage("Sorry, you're in the only region so far.  Over time, more regions will open.");
+		        PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoMoreRegions);
 		    }
 		    else
 		    {           
@@ -701,7 +701,7 @@ public class PopulationDensity extends JavaPlugin
 		{
 		    if(player != null)
 		    {
-		        player.sendMessage("Thinning running.  Check logs for detailed results.");
+		        PopulationDensity.sendMessage(player, TextMode.Success, Messages.ThinningConfirmation);
 		    }
 		    
 		    MonitorPerformanceTask.thinEntities();
@@ -727,14 +727,14 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("lag"))
         {
-            String message = "Current server performance score is " + Math.round((serverTicksPerSecond / 20) * 100) + "%.";
+            String message = PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore, String.valueOf(Math.round((serverTicksPerSecond / 20) * 100)));
 		    if(serverTicksPerSecond > 19)
             {
-                message = "The server is running at normal speed.  If you're experiencing lag, check your graphics settings and internet connection.  " + message;
+                message = PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore_NoLag) + message;
             }
 		    else
 		    {
-		        message += "  The server is actively working to reduce lag - please be patient while automatic lag reduction takes effect.";
+		        message += PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore_Lag);
 		    }
             
             if(player != null)
@@ -782,7 +782,7 @@ public class PopulationDensity extends JavaPlugin
 		//avoid teleporting from other worlds
 		if(!player.getWorld().equals(ManagedWorld) && (CityWorld == null || !player.getWorld().equals(CityWorld)))
 		{
-			player.sendMessage(ChatColor.RED + "You can't teleport from this world.");
+			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoTeleportThisWorld);
 			return false;
 		}
 		
@@ -791,7 +791,7 @@ public class PopulationDensity extends JavaPlugin
 		{
 			if(!isHomeOrCityTeleport)
 			{
-				player.sendMessage("You're limited to /HomeRegion and /CityRegion here.");
+				PopulationDensity.sendMessage(player, TextMode.Err, Messages.OnlyHomeCityHere);
 				return false;
 			}
 			
@@ -803,7 +803,7 @@ public class PopulationDensity extends JavaPlugin
 			Location homeCenter = getRegionCenter(playerData.homeRegion);
 			if(homeCenter.distanceSquared(player.getLocation()) < 100) return true;
 			
-			player.sendMessage(ChatColor.RED + "Sorry, you can't teleport from here.");
+			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoTeleportHere);
 			return false;
 		}
 		
@@ -816,8 +816,8 @@ public class PopulationDensity extends JavaPlugin
 			Location currentCenter = getRegionCenter(currentRegion);
 			if(currentCenter.distanceSquared(player.getLocation()) < 100) return true;
 			
-			player.sendMessage(ChatColor.RED + "You're not close enough to a region post to teleport.");
-			player.sendMessage(ChatColor.YELLOW + "More info here: " + ChatColor.UNDERLINE + "" + ChatColor.AQUA + "http://bit.ly/mcregions");
+			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NotCloseToPost);
+			player.sendMessage(ChatColor.YELLOW + PopulationDensity.instance.dataStore.getMessage(Messages.HelpMessage) + ChatColor.UNDERLINE + "" + ChatColor.AQUA + "http://bit.ly/mcregions");
 			return false;			
 		}
 	}
@@ -1077,5 +1077,46 @@ public class PopulationDensity extends JavaPlugin
         }
         
         return null;
+    }
+	
+	//sends a color-coded message to a player
+    static void sendMessage(Player player, ChatColor color, Messages messageID, String... args)
+    {
+        sendMessage(player, color, messageID, 0, args);
+    }
+    
+    //sends a color-coded message to a player
+    static void sendMessage(Player player, ChatColor color, Messages messageID, long delayInTicks, String... args)
+    {
+        String message = PopulationDensity.instance.dataStore.getMessage(messageID, args);
+        sendMessage(player, color, message, delayInTicks);
+    }
+    
+    //sends a color-coded message to a player
+    static void sendMessage(Player player, ChatColor color, String message)
+    {
+        if(message == null || message.length() == 0) return;
+        
+        if(player == null)
+        {
+            PopulationDensity.AddLogEntry(color + message);
+        }
+        else
+        {
+            player.sendMessage(color + message);
+        }
+    }
+    
+    static void sendMessage(Player player, ChatColor color, String message, long delayInTicks)
+    {
+        SendPlayerMessageTask task = new SendPlayerMessageTask(player, color, message);
+        if(delayInTicks > 0)
+        {
+            PopulationDensity.instance.getServer().getScheduler().runTaskLater(PopulationDensity.instance, task, delayInTicks);
+        }
+        else
+        {
+            task.run();
+        }
     }
 }

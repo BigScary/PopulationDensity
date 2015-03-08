@@ -75,9 +75,9 @@ public class BlockEventHandler implements Listener
 		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, PopulationDensity.instance.postProtectionRadius))
 		{
 			if(PopulationDensity.instance.buildRegionPosts)
-				player.sendMessage("You can't break blocks this close to the region post.");
+			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoBreakPost);
 			else
-				player.sendMessage("You can't break blocks this close to a player spawn point.");
+			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoBreakSpawn);
 			breakEvent.setCancelled(true);
 			return;
 		}
@@ -107,9 +107,9 @@ public class BlockEventHandler implements Listener
 		if(!player.hasPermission("populationdensity.buildbreakanywhere") && this.nearRegionPost(blockLocation, blockRegion, PopulationDensity.instance.postProtectionRadius))
 		{
 			if(PopulationDensity.instance.buildRegionPosts)
-				player.sendMessage("You can't build this close to the region post.");
+				PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoBuildPost);
 			else
-				player.sendMessage("You can't build this close to a player spawn point.");
+			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoBuildSpawn);
 			placeEvent.setCancelled(true);
 			return;
 		}
@@ -122,7 +122,7 @@ public class BlockEventHandler implements Listener
 			
 			if(!playerData.homeRegion.equals(blockRegion))
 			{
-				player.sendMessage("You're building outside of your home region.  If you'd like to make this region your new home to help you return here later, use /MoveIn.");
+				PopulationDensity.sendMessage(player, TextMode.Warn, Messages.BuildingAwayFromHome);
 				playerData.advertisedMoveInThisSession = true;
 			}
 		}
@@ -142,7 +142,7 @@ public class BlockEventHandler implements Listener
         
         if(!this.nearRegionPost(block.getLocation(), RegionCoordinates.fromLocation(block.getLocation()), 1)) return;
         
-        player.sendMessage(ChatColor.GREEN + "Region post help and commands: " + ChatColor.AQUA + "http://bit.ly/mcregions");
+        player.sendMessage(ChatColor.GREEN + PopulationDensity.instance.dataStore.getMessage(Messages.HelpMessage) + ChatColor.AQUA + "http://bit.ly/mcregions");
     }
 	
 	//determines whether or not you're "near" a region post

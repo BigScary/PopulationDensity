@@ -25,6 +25,8 @@ import java.util.*;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 public class DataStore 
@@ -38,6 +40,10 @@ public class DataStore
 	private final static String playerDataFolderPath = dataLayerFolderPath + File.separator + "PlayerData";
 	private final static String regionDataFolderPath = dataLayerFolderPath + File.separator + "RegionData";
 	public final static String configFilePath = dataLayerFolderPath + File.separator + "config.yml";
+	final static String messagesFilePath = dataLayerFolderPath + File.separator + "messages.yml";
+	
+    //in-memory cache for messages
+    private String [] messages;
 	
 	//currently open region
 	private RegionCoordinates openRegionCoordinates;
@@ -54,6 +60,8 @@ public class DataStore
 		//ensure data folders exist
 		new File(playerDataFolderPath).mkdirs();
 		new File(regionDataFolderPath).mkdirs();
+		
+		this.loadMessages();
 		
 		//study region data and initialize both this.openRegionCoordinates and this.nextRegionCoordinates
 		this.regionCount = this.findNextRegion();
@@ -870,6 +878,115 @@ public class DataStore
 	{
 		this.playerNameToPlayerDataMap.remove(player.getName());		
 	}
+	
+	private void loadMessages() 
+    {
+        Messages [] messageIDs = Messages.values();
+        this.messages = new String[Messages.values().length];
+        
+        HashMap<String, CustomizableMessage> defaults = new HashMap<String, CustomizableMessage>();
+        
+        //initialize defaults
+        this.addDefault(defaults, Messages.NoManagedWorld, "The PopulationDensity plugin has not been properly configured.  Please update your config.yml to specify a world to manage.", null);
+        this.addDefault(defaults, Messages.NoBreakPost, "You can't break blocks this close to the region post.", null);
+        this.addDefault(defaults, Messages.NoBreakSpawn, "You can't break blocks this close to a player spawn point.", null);
+        this.addDefault(defaults, Messages.NoBuildPost, "You can't place blocks this close to the region post.", null);
+        this.addDefault(defaults, Messages.NoBuildSpawn, "You can't place blocks this close to a player spawn point.", null);
+        this.addDefault(defaults, Messages.HelpMessage, "Region post help and commands: ", null);
+        this.addDefault(defaults, Messages.BuildingAwayFromHome, "You're building outside of your home region.  If you'd like to make this region your new home to help you return here later, use /MoveIn.", null);
+        this.addDefault(defaults, Messages.NoTeleportThisWorld, "You can't teleport from this world.", null);
+        this.addDefault(defaults, Messages.OnlyHomeCityHere, "You're limited to /HomeRegion and /CityRegion here.", null);
+        this.addDefault(defaults, Messages.NoTeleportHere, "Sorry, you can't teleport from here.", null);
+        this.addDefault(defaults, Messages.NotCloseToPost, "You're not close enough to a region post to teleport.", null);
+        this.addDefault(defaults, Messages.InvitationNeeded, "{0} lives in the wilderness.  He or she will have to /invite you.", "0: target player");
+        this.addDefault(defaults, Messages.VisitConfirmation, "Teleported to {0}'s home region.", "0: target player");
+        this.addDefault(defaults, Messages.DestinationNotFound, "There's no region or online player named \"{0}\".", "0: specified destination");
+        this.addDefault(defaults, Messages.NeedNewestRegionPermission, "You don't have permission to use that command.", null);
+        this.addDefault(defaults, Messages.NewestRegionConfirmation, "Teleported to the current new player area.", null);
+        this.addDefault(defaults, Messages.NotInRegion, "You're not in a region!", null);
+        this.addDefault(defaults, Messages.UnnamedRegion, "You're in the wilderness!  This region doesn't have a name.", null);
+        this.addDefault(defaults, Messages.WhichRegion, "You're in the {0} region.", null);
+        this.addDefault(defaults, Messages.RegionNamesNoSpaces, "Region names may not include spaces.", null);
+        this.addDefault(defaults, Messages.RegionNamesTenLetters, "Region names must be at most 10 letters long.", null);
+        this.addDefault(defaults, Messages.RegionNamesOnlyLetters, "Region names may only include letters.", null);
+        this.addDefault(defaults, Messages.RegionNameConflict, "There's already a region by that name.", null);
+        this.addDefault(defaults, Messages.NoMoreRegions, "Sorry, you're in the only region.  Over time, more regions will open.", null);
+        this.addDefault(defaults, Messages.InviteConfirmation, "Invitation sent!  {0} can use /visit {1} to teleport to your home post.", "0: invitee's name, 1: inviter's name");
+        this.addDefault(defaults, Messages.InviteNotification, "{0} has invited you to visit!", "0: inviter's name");
+        this.addDefault(defaults, Messages.InviteInstruction, "Use /visit {0} to teleport there.", "0: inviter's name");
+        this.addDefault(defaults, Messages.PlayerNotFound, "There's no player named \"{0}\" online right now.", "0: specified name");
+        this.addDefault(defaults, Messages.SetHomeConfirmation, "Home set to the nearest region post!", null);
+        this.addDefault(defaults, Messages.SetHomeInstruction1, "Use /Home from any region post to teleport to your home post.", null);
+        this.addDefault(defaults, Messages.SetHomeInstruction2, "Use /Invite to invite other players to teleport to your home post.", null);
+        this.addDefault(defaults, Messages.AddRegionConfirmation, "Opened a new region and started a resource scan.  See console or server logs for details.", null);
+        this.addDefault(defaults, Messages.ScanStartConfirmation, "Started scan.  Check console or server logs for results.", null);
+        this.addDefault(defaults, Messages.LoginPriorityCheck, "{0}'s login priority: {1}.", "0: player name, 1: current priority");
+        this.addDefault(defaults, Messages.LoginPriorityUpdate, "Set {0}'s priority to {1}.", "0: target player, 1: new priority");
+        this.addDefault(defaults, Messages.ThinningConfirmation, "Thinning running.  Check logs for detailed results.", null);
+        this.addDefault(defaults, Messages.PerformanceScore, "Current server performance score is {0}%.", "0: performance score");
+        this.addDefault(defaults, Messages.PerformanceScore_Lag, "  The server is actively working to reduce lag - please be patient while automatic lag reduction takes effect.", null);
+        this.addDefault(defaults, Messages.PerformanceScore_NoLag, "The server is running at normal speed.  If you're experiencing lag, check your graphics settings and internet connection.  ", null);
+        
+        //load the config file
+        FileConfiguration config = YamlConfiguration.loadConfiguration(new File(messagesFilePath));
+        
+        //for each message ID
+        for(int i = 0; i < messageIDs.length; i++)
+        {
+            //get default for this message
+            Messages messageID = messageIDs[i];
+            CustomizableMessage messageData = defaults.get(messageID.name());
+            
+            //if default is missing, log an error and use some fake data for now so that the plugin can run
+            if(messageData == null)
+            {
+                PopulationDensity.AddLogEntry("Missing message for " + messageID.name() + ".  Please contact the developer.");
+                messageData = new CustomizableMessage(messageID, "Missing message!  ID: " + messageID.name() + ".  Please contact a server admin.", null);
+            }
+            
+            //read the message from the file, use default if necessary
+            this.messages[messageID.ordinal()] = config.getString("Messages." + messageID.name() + ".Text", messageData.text);
+            config.set("Messages." + messageID.name() + ".Text", this.messages[messageID.ordinal()]);
+            
+            if(messageData.notes != null)
+            {
+                messageData.notes = config.getString("Messages." + messageID.name() + ".Notes", messageData.notes);
+                config.set("Messages." + messageID.name() + ".Notes", messageData.notes);
+            }
+        }
+        
+        //save any changes
+        try
+        {
+            config.save(DataStore.messagesFilePath);
+        }
+        catch(IOException exception)
+        {
+            PopulationDensity.AddLogEntry("Unable to write to the configuration file at \"" + DataStore.messagesFilePath + "\"");
+        }
+        
+        defaults.clear();
+        System.gc();                
+    }
+
+    private void addDefault(HashMap<String, CustomizableMessage> defaults, Messages id, String text, String notes)
+    {
+        CustomizableMessage message = new CustomizableMessage(id, text, notes);
+        defaults.put(id.name(), message);       
+    }
+
+    synchronized public String getMessage(Messages messageID, String... args)
+    {
+        String message = messages[messageID.ordinal()];
+        
+        for(int i = 0; i < args.length; i++)
+        {
+            String param = args[i];
+            message = message.replace("{" + i + "}", param);
+        }
+        
+        return message;     
+    }
 	
 	//list of region names to use
 	private final String [] regionNamesList = new String [] 
