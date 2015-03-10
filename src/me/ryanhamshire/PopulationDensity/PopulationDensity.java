@@ -1047,7 +1047,7 @@ public class PopulationDensity extends JavaPlugin
                 Chunk chunk = world.getChunkAt(x, z);
                 for(Entity entity : chunk.getEntities())
                 {
-                    if(entity instanceof Monster)
+                    if(entity instanceof Monster && entity.getCustomName() == null && ((Monster) entity).getRemoveWhenFarAway())
                     {
                         entity.remove();
                     }
