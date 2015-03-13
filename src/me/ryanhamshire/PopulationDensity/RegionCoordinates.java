@@ -74,10 +74,21 @@ public class RegionCoordinates
 	}
 	
 	//compares two region coordinates to see if they match
-	public boolean equals(RegionCoordinates coordinatesToCompare)
+	@Override
+	public boolean equals(Object coordinatesToCompare)
 	{
 		if(coordinatesToCompare == null) return false;
 		
-		return this.x == coordinatesToCompare.x && this.z == coordinatesToCompare.z;
+		if(!(coordinatesToCompare instanceof RegionCoordinates)) return false;
+		
+		RegionCoordinates coords = (RegionCoordinates)coordinatesToCompare;
+		
+		return this.x == coords.x && this.z == coords.z;
+	}
+	
+	@Override
+	public int hashCode()
+	{
+	    return this.toString().hashCode();
 	}
 }

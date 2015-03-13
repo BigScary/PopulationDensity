@@ -19,8 +19,10 @@
 package me.ryanhamshire.PopulationDensity;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -29,10 +31,11 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
+import com.google.common.io.Files;
+
 public class DataStore 
 {
 	//in-memory cache for player home region, because it's needed very frequently
-	//writes here also write immediately to file
 	private HashMap<String, PlayerData> playerNameToPlayerDataMap = new HashMap<String, PlayerData>();
 	
 	//path information, for where stuff stored on disk is well...  stored
@@ -51,8 +54,9 @@ public class DataStore
 	//coordinates of the next region which will be opened, if one needs to be opened
 	private RegionCoordinates nextRegionCoordinates;
 	
-	//total number of regions
-	private int regionCount;
+	//region data cache
+	private ConcurrentHashMap<String, RegionCoordinates> nameToCoordsMap = new ConcurrentHashMap<String, RegionCoordinates>();
+	private ConcurrentHashMap<RegionCoordinates, String> coordsToNameMap = new ConcurrentHashMap<RegionCoordinates, String>();
 	
 	//initialization!
 	public DataStore()
@@ -63,11 +67,35 @@ public class DataStore
 		
 		this.loadMessages();
 		
+		//get a list of all the files in the region data folder
+        //some of them are named after region names, others region coordinates
+        File regionDataFolder = new File(regionDataFolderPath);
+        File [] files = regionDataFolder.listFiles();           
+        
+        for(int i = 0; i < files.length; i++)
+        {               
+            if(files[i].isFile())  //avoid any folders
+            {
+                try
+                {
+                    //if the filename converts to region coordinates, add that region to the list of defined regions
+                    //(this constructor throws an exception if it can't do the conversion)
+                    RegionCoordinates regionCoordinates = new RegionCoordinates(files[i].getName());
+                    String regionName = Files.readFirstLine(files[i], Charset.forName("UTF-8"));
+                    this.nameToCoordsMap.put(regionName, regionCoordinates);
+                    this.coordsToNameMap.put(regionCoordinates, regionName);
+                }
+                
+                //catch for files named after region names
+                catch(Exception e){ }                   
+            }
+        }
+		
 		//study region data and initialize both this.openRegionCoordinates and this.nextRegionCoordinates
-		this.regionCount = this.findNextRegion();
+		this.findNextRegion();
 		
 		//if no regions were loaded, create the first one
-		if(regionCount == 0)
+		if(nameToCoordsMap.keySet().size() == 0)
 		{
 			PopulationDensity.AddLogEntry("Please be patient while I search for a good new player starting point!");
 			PopulationDensity.AddLogEntry("This initial scan could take a while, especially for worlds where players have already been building.");
@@ -96,11 +124,11 @@ public class DataStore
 		Direction direction = Direction.down;   //direction to search
 		int sideLength = 1;  					//maximum number of regions to move in this direction before changing directions
 		int side = 0;        					//increments each time we change directions.  this tells us when to add length to each side
-		this.openRegionCoordinates = null;
+		this.openRegionCoordinates = new RegionCoordinates(0, 0);
 		this.nextRegionCoordinates = new RegionCoordinates(0, 0);
 
 		//while the next region coordinates are taken, walk the spiral
-		while ((this.getRegionName(this.nextRegionCoordinates)) != null)
+		while (this.getRegionName(this.nextRegionCoordinates) != null)
 		{
 			//loop for one side of the spiral
 			for (int i = 0; i < sideLength && this.getRegionName(this.nextRegionCoordinates) != null; i++)
@@ -137,40 +165,23 @@ public class DataStore
 	//picks a region at random (sort of)
 	public RegionCoordinates getRandomRegion(RegionCoordinates regionToAvoid)
 	{
-		if(this.regionCount < 2) return null;
+		if(this.coordsToNameMap.keySet().size() < 2) return null;
 		
 		//initialize random number generator with a seed based the current time
 		Random randomGenerator = new Random();
 		
-		//get a list of all the files in the region data folder
-		//some of them are named after region names, others region coordinates
-		File regionDataFolder = new File(regionDataFolderPath);
-		File [] files = regionDataFolder.listFiles();			
-		ArrayList<RegionCoordinates> regions = new ArrayList<RegionCoordinates>();
-		
-		for(int i = 0; i < files.length; i++)
-		{				
-			if(files[i].isFile())  //avoid any folders
-			{
-				try
-				{
-					//if the filename converts to region coordinates, add that region to the list of defined regions
-					//(this constructor throws an exception if it can't do the conversion)
-					RegionCoordinates regionCoordinates = new RegionCoordinates(files[i].getName());
-					if(!regionCoordinates.equals(regionToAvoid))
-					{
-						regions.add(regionCoordinates);
-					}
-				}
-				
-				//catch for files named after region names
-				catch(Exception e){ }					
-			}
+		ArrayList<RegionCoordinates> possibleDestinations = new ArrayList<RegionCoordinates>();
+		for(RegionCoordinates coords : this.coordsToNameMap.keySet())
+		{
+		    if(!coords.equals(regionToAvoid))
+		    {
+		        possibleDestinations.add(coords);
+		    }
 		}
 		
 		//pick one of those regions at random
-		int randomRegion = randomGenerator.nextInt(regions.size());			
-		return regions.get(randomRegion);			
+		int randomRegion = randomGenerator.nextInt(possibleDestinations.size());			
+		return possibleDestinations.get(randomRegion);			
 	}
 	
 	public void savePlayerData(OfflinePlayer player, PlayerData data)
@@ -328,7 +339,7 @@ public class DataStore
 		//strategy: use names from the list in rotation, appending a number when a name is already used
 		//(redstone, mountain, valley, redstone1, mountain1, valley1, ...)
 		
-		int newRegionNumber = this.regionCount++ - 1;
+		int newRegionNumber = this.coordsToNameMap.keySet().size() - 1;
 		
 		//as long as the generated name is already in use, move up one name on the list
 		do
@@ -366,23 +377,19 @@ public class DataStore
 		}
 
 		//"create" the region by saving necessary data to disk
-		//(region names to coordinates mappings aren't kept in memory because they're less often needed, and this way we keep it simple) 
 		BufferedWriter outStream = null;
 		try
 		{
 			//coordinates file contains the region's name
-			File regionNameFile = new File(regionDataFolderPath + File.separator + name);
-			regionNameFile.createNewFile();
-			outStream = new BufferedWriter(new FileWriter(regionNameFile));
-			outStream.write(coords.toString());
-			outStream.close();
+            File regionCoordinatesFile = new File(regionDataFolderPath + File.separator + coords.toString());
+            regionCoordinatesFile.createNewFile();
+            outStream = new BufferedWriter(new FileWriter(regionCoordinatesFile));
+            outStream.write(name);
+            outStream.close();
 			
-			//name file contains the coordinates
-			File regionCoordinatesFile = new File(regionDataFolderPath + File.separator + coords.toString());
-			regionCoordinatesFile.createNewFile();
-			outStream = new BufferedWriter(new FileWriter(regionCoordinatesFile));
-			outStream.write(name);
-			outStream.close();			
+			//cache in memory
+			this.coordsToNameMap.put(coords, name);
+			this.nameToCoordsMap.put(name, coords);
 		}
 		
 		//in case of any problem, log the details
@@ -407,75 +414,13 @@ public class DataStore
 	//goes to disk to get the name of a region, given its coordinates
 	public String getRegionName(RegionCoordinates coordinates)
 	{
-		File regionCoordinatesFile;
-		
-		BufferedReader inStream = null;
-		String regionName = null;
-		try
-		{
-			regionCoordinatesFile = new File(regionDataFolderPath + File.separator + coordinates.toString());			
-			inStream = new BufferedReader(new FileReader(regionCoordinatesFile));
-			
-			//only one line in the file, the region name
-			regionName = inStream.readLine();
-		}
-		
-		//if the file doesn't exist, the region hasn't been named yet, so return null
-		catch(FileNotFoundException e)
-		{			
-			return null;
-		}
-		
-		//if any other problems, log the details
-		catch(Exception e)
-		{
-			PopulationDensity.AddLogEntry("Unable to read region data: " + e.getMessage());
-			return null;
-		}
-		
-		try
-		{
-			if(inStream != null) inStream.close();
-		}
-		catch(IOException exception){}
-		
-		return regionName;
+		return this.coordsToNameMap.get(coordinates);
 	}
 	
 	//similar to above, goes to disk to get the coordinates that go with a region name
 	public RegionCoordinates getRegionCoordinates(String regionName)
 	{
-		File regionNameFile = new File(regionDataFolderPath + File.separator + regionName);
-		
-		BufferedReader inStream = null;
-		RegionCoordinates coordinates = null;
-		try
-		{
-			inStream = new BufferedReader(new FileReader(regionNameFile));
-			
-			//only one line in the file, the coordinates
-			String coordinatesString = inStream.readLine();
-			
-			inStream.close();			
-			coordinates = new RegionCoordinates(coordinatesString);
-		}
-		
-		//file not found means there's no region with a matching name, so return null
-		catch(FileNotFoundException e) { }
-		
-		//if any other problems, log the details and then return null
-		catch(Exception e)
-		{
-			PopulationDensity.AddLogEntry("Unable to read region data at " + regionNameFile.getAbsolutePath() + ": " + e.getMessage());			
-		}
-		
-		try
-		{
-			if(inStream != null) inStream.close();
-		}
-		catch(IOException exception) {}
-		
-		return coordinates;
+		return this.nameToCoordsMap.get(regionName);
 	}
 	
 	//actually edits the world to create a region post at the center of the specified region	
