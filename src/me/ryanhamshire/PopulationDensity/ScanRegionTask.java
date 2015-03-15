@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Material;
 
-public class ScanRegionTask implements Runnable 
+public class ScanRegionTask extends Thread 
 {
 	private ChunkSnapshot[][] chunks;
 	private boolean openNewRegions;

@@ -943,9 +943,10 @@ public class PopulationDensity extends JavaPlugin
 		
 		//create a new task with this information, which will more completely scan the content of all the snapshots
 		ScanRegionTask task = new ScanRegionTask(snapshots, openNewRegions);
+		task.setPriority(Thread.MIN_PRIORITY);
 		
 		//run it in a separate thread		
-		this.getServer().getScheduler().runTaskLaterAsynchronously(this, task, 5L);		
+		task.start();		
 	}
 	
 	//ensures a piece of the managed world is loaded into server memory
