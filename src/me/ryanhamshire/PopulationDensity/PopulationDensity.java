@@ -458,6 +458,13 @@ public class PopulationDensity extends JavaPlugin
 			return true;
 		}
 		
+		else if(cmd.getName().equalsIgnoreCase("listregions"))
+        {
+            PopulationDensity.sendMessage(player, TextMode.Info, this.dataStore.getRegionNames());
+            
+            return true;
+        }
+		
 		else if(cmd.getName().equalsIgnoreCase("nameregion") && player != null)
 		{
 			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());

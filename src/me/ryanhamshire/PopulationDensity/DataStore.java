@@ -1018,4 +1018,15 @@ public class DataStore
 		"dust",
 		"lava"
 	};
+
+    String getRegionNames()
+    {
+        StringBuilder builder = new StringBuilder();
+        for(String regionName : this.nameToCoordsMap.keySet())
+        {
+            builder.append(regionName).append(' ');
+        }
+        
+        return builder.toString();
+    }
 }
