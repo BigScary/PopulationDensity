@@ -845,7 +845,7 @@ public class DataStore
         this.addDefault(defaults, Messages.NotCloseToPost, "You're not close enough to a region post to teleport.", null);
         this.addDefault(defaults, Messages.InvitationNeeded, "{0} lives in the wilderness.  He or she will have to /invite you.", "0: target player");
         this.addDefault(defaults, Messages.VisitConfirmation, "Teleported to {0}'s home region.", "0: target player");
-        this.addDefault(defaults, Messages.DestinationNotFound, "There's no region or online player named \"{0}\".", "0: specified destination");
+        this.addDefault(defaults, Messages.DestinationNotFound, "There's no region or online player named \"{0}\".  Use /ListRegions to list possible destinations.", "0: specified destination");
         this.addDefault(defaults, Messages.NeedNewestRegionPermission, "You don't have permission to use that command.", null);
         this.addDefault(defaults, Messages.NewestRegionConfirmation, "Teleported to the current new player area.", null);
         this.addDefault(defaults, Messages.NotInRegion, "You're not in a region!", null);
