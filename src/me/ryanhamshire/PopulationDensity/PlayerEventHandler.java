@@ -221,7 +221,6 @@ public class PlayerEventHandler implements Listener {
     			// his home region is the open region
     			RegionCoordinates openRegion = this.dataStore.getOpenRegion();
     			playerData.homeRegion = openRegion;
-    			this.dataStore.savePlayerData(joiningPlayer, playerData);
     			PopulationDensity.AddLogEntry("Assigned new player "
     					+ joiningPlayer.getName() + " to region "
     					+ this.dataStore.getRegionName(openRegion) + " at "
@@ -265,6 +264,8 @@ public class PlayerEventHandler implements Listener {
 		            playerData.homeRegion = RegionCoordinates.fromLocation(joiningPlayer.getLocation());
 		        }
 		    }
+		    
+		    this.dataStore.savePlayerData(joiningPlayer, playerData);
 		}
 	}
 
