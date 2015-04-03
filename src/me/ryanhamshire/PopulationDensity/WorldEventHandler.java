@@ -49,10 +49,7 @@ public class WorldEventHandler implements Listener
 			regionCenter.getBlockZ() >= lesserCorner.getBlockZ() && regionCenter.getBlockZ() <= greaterCorner.getBlockZ())
 		{
 			//create a task to build the post after 10 seconds
-			AddRegionPostTask task = new AddRegionPostTask(region, false);
-			
-			//run it in a separate thread		
-			PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 20L * 10);			
+			PopulationDensity.instance.dataStore.AddRegionPost(region, false);			
 		}
 	}
 	

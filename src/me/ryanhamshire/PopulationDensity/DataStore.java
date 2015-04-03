@@ -514,9 +514,10 @@ public class DataStore
 		{
 			for(int z1 = z - 2; z1 <= z + 2; z1++)
 			{
-				for(int y1 = y + 1; y1 < PopulationDensity.ManagedWorld.getMaxHeight(); y1++)
+				for(int y1 = y + 1; y1 < y + 10; y1++)
 				{
-					PopulationDensity.ManagedWorld.getBlockAt(x1, y1, z1).setType(Material.AIR);
+					Block block = PopulationDensity.ManagedWorld.getBlockAt(x1, y1, z1);
+					if(block.getType() != Material.AIR) block.setType(Material.AIR);
 				}
 			}
 		}	
