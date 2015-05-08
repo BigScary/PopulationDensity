@@ -230,7 +230,11 @@ public class PlayerEventHandler implements Listener {
     			// spawn in their home region by default.
     			// if configured as such, teleport him there in a couple of seconds
     			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion);
-    			PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
+    			try
+    			{
+    			    PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
+    			}
+    			catch(ChunkLoadException e) {} //ignore and hope the server will load the chunk before teleporting the player
     			if (PopulationDensity.instance.newPlayersSpawnInHomeRegion && joiningPlayer.getLocation().distanceSquared(joiningPlayer.getWorld().getSpawnLocation()) < 625) 
     			{
     				PlaceNewPlayerTask task = new PlaceNewPlayerTask(joiningPlayer, playerData.homeRegion);

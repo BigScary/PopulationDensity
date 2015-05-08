@@ -1,7 +1,7 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
 softdepend: [Multiverse-Core, My Worlds, Transporter, MystCraft]
-version: 4.9.2
+version: 4.9.3
 commands:
    visit:
       description: Teleports the player to a specified region.

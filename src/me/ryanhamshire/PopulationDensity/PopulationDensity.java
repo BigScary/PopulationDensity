@@ -511,7 +511,11 @@ public class PopulationDensity extends JavaPlugin
 			this.dataStore.nameRegion(currentRegion, name);
 			
 			//update post
-			this.dataStore.AddRegionPost(currentRegion, true);	
+			try
+			{
+			    this.dataStore.AddRegionPost(currentRegion);
+			}
+			catch(ChunkLoadException e) {}  //ignore.  post will be auto-rebuilt when the chunk is loaded later
 			
 			return true;
 		}
@@ -525,7 +529,11 @@ public class PopulationDensity extends JavaPlugin
 				return true;
 			}
 			
-			this.dataStore.AddRegionPost(currentRegion, false);
+			try
+			{
+			    this.dataStore.AddRegionPost(currentRegion);
+			}
+			catch(ChunkLoadException e) {}  //ignore.  post will be auto-built when the chunk is loaded later
 			
 			return true;
 		}
@@ -849,12 +857,13 @@ public class PopulationDensity extends JavaPlugin
 		int z = teleportDestination.getBlockZ();
 		
 		//make sure the chunk is loaded
-		GuaranteeChunkLoaded(x, z);
+		try
+		{
+		    GuaranteeChunkLoaded(x, z);
+		}
+		catch(ChunkLoadException e){}  //we did our best, hope the server will load the chunk when we teleport the player
 		
-		//send him the chunk so his client knows about his destination
-		teleportDestination.getWorld().refreshChunk(x, z);
-		
-		//find a safe height, a couple of blocks above the surface		
+		//find a safe height, on the surface		
 		Block highestBlock = ManagedWorld.getHighestBlockAt(x, z);
 		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY(), z);		
 		
@@ -881,6 +890,14 @@ public class PopulationDensity extends JavaPlugin
 		Chunk greaterBoundaryChunk = ManagedWorld.getChunkAt(new Location(ManagedWorld, max_x, 1, max_z));
 				
 		ChunkSnapshot [][] snapshots = new ChunkSnapshot[greaterBoundaryChunk.getX() - lesserBoundaryChunk.getX() + 1][greaterBoundaryChunk.getZ() - lesserBoundaryChunk.getZ() + 1];
+		for(int x = 0; x < snapshots.length; x++)
+        {
+            for(int z = 0; z < snapshots[0].length; z++)
+            {
+                snapshots[x][z] = null;
+            }
+        }
+		
 		boolean snapshotIncomplete;
 		do
 		{
@@ -890,31 +907,39 @@ public class PopulationDensity extends JavaPlugin
 			{
 				for(int z = 0; z < snapshots[0].length; z++)
 				{
+				    //skip chunks that we already have snapshots for
+				    if(snapshots[x][z] != null) continue;
+				    
 					//get the chunk, load it, generate it if necessary
 					Chunk chunk = ManagedWorld.getChunkAt(x + lesserBoundaryChunk.getX(), z + lesserBoundaryChunk.getZ());
-					while(!chunk.load(true));
-					
-					//take a snapshot
-					ChunkSnapshot snapshot = chunk.getChunkSnapshot();
-					
-					//verify the snapshot by finding something that's not air
-					boolean foundNonAir = false;
-					for(int y = 0; y < ManagedWorld.getMaxHeight(); y++)
+					if(chunk.isLoaded() || chunk.load(true))
 					{
-						//if we find something, save the snapshot to the snapshot array
-						if(snapshot.getBlockTypeId(0, y, 0) != Material.AIR.getId())
-						{
-							foundNonAir = true;
-							snapshots[x][z] = snapshot;
-							break;
-						}
+    					//take a snapshot
+    					ChunkSnapshot snapshot = chunk.getChunkSnapshot();
+    					
+    					//verify the snapshot by finding something that's not air
+    					boolean foundNonAir = false;
+    					for(int y = 0; y < ManagedWorld.getMaxHeight(); y++)
+    					{
+    						//if we find something, save the snapshot to the snapshot array
+    						if(snapshot.getBlockTypeId(0, y, 0) != Material.AIR.getId())
+    						{
+    							foundNonAir = true;
+    							snapshots[x][z] = snapshot;
+    							break;
+    						}
+    					}
+    					
+    					//otherwise, plan to repeat this process again after sleeping a bit
+    					if(!foundNonAir)
+    					{
+    						snapshotIncomplete = true;
+    					}	
 					}
-					
-					//otherwise, plan to repeat this process again after sleeping a bit
-					if(!foundNonAir)
+					else
 					{
-						snapshotIncomplete = true;
-					}					
+					    snapshotIncomplete = true;
+					}
 				}
 			}
 			
@@ -931,16 +956,6 @@ public class PopulationDensity extends JavaPlugin
 			
 		}while(snapshotIncomplete);
 		
-		//try to unload any chunks which don't have players nearby
-		Chunk [] loadedChunks = PopulationDensity.ManagedWorld.getLoadedChunks();
-		for(int i = 0; i < loadedChunks.length; i++)
-		{
-			loadedChunks[i].unload(true, true);  //save = true, safe = true
-		}
-		
-		//collect garbage
-		System.gc();
-		
 		//create a new task with this information, which will more completely scan the content of all the snapshots
 		ScanRegionTask task = new ScanRegionTask(snapshots, openNewRegions);
 		task.setPriority(Thread.MIN_PRIORITY);
@@ -952,11 +967,17 @@ public class PopulationDensity extends JavaPlugin
 	//ensures a piece of the managed world is loaded into server memory
 	//(generates the chunk if necessary)
 	//these coordinate params are BLOCK coordinates, not CHUNK coordinates
-	public static void GuaranteeChunkLoaded(int x, int z)
+	public static void GuaranteeChunkLoaded(int x, int z) throws ChunkLoadException
 	{
 		Location location = new Location(ManagedWorld, x, 5, z);
 		Chunk chunk = ManagedWorld.getChunkAt(location);
-		while(!chunk.isLoaded() || !chunk.load(true));
+		if(!chunk.isLoaded())
+	    {
+		    if(!chunk.load(true))
+		    {
+		        throw new ChunkLoadException();
+		    }
+	    }
 	}
 	
 	//determines the center of a region (as a Location) given its region coordinates

@@ -49,7 +49,11 @@ public class WorldEventHandler implements Listener
 			regionCenter.getBlockZ() >= lesserCorner.getBlockZ() && regionCenter.getBlockZ() <= greaterCorner.getBlockZ())
 		{
 			//create a task to build the post after 10 seconds
-			PopulationDensity.instance.dataStore.AddRegionPost(region, false);			
+			try
+			{
+			    PopulationDensity.instance.dataStore.AddRegionPost(region);
+			}
+			catch(ChunkLoadException e){}  //this should never happen, because the chunk is loaded (why else would onChunkLoad() be invoked?)
 		}
 	}
 	

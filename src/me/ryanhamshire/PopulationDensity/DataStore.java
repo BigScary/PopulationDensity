@@ -424,7 +424,7 @@ public class DataStore
 	}
 	
 	//actually edits the world to create a region post at the center of the specified region	
-	public void AddRegionPost(RegionCoordinates region, boolean updateNeighboringRegions)
+	public void AddRegionPost(RegionCoordinates region) throws ChunkLoadException
 	{
 		//if region post building is disabled, don't do anything
 		if(!PopulationDensity.instance.buildRegionPosts) return;
@@ -440,44 +440,26 @@ public class DataStore
 		
 		//sink lower until we find something solid
 		//also ignore glowstone, in case there's already a post here!
-		//race condition issue: chunks say they're loaded when they're not.  if it looks like the chunk isn't loaded, try again (up to five times)
-		int retriesLeft = 5;
-		boolean tryAgain;
 		Material blockType;
+		
+		//find the highest block.  could be the surface, a tree, some grass...
+		y = PopulationDensity.ManagedWorld.getHighestBlockYAt(x, z) + 1;
+		
+		//posts fall through trees, snow, and any existing post looking for the ground
 		do
 		{
-			tryAgain = false;
-			
-			//find the highest block.  could be the surface, a tree, some grass...
-			y = PopulationDensity.ManagedWorld.getHighestBlockYAt(x, z) + 1;
-			
-			//posts fall through trees, snow, and any existing post looking for the ground
-			do
-			{
-				blockType = PopulationDensity.ManagedWorld.getBlockAt(x, --y, z).getType();
-			}
-			while(	y > 2 && (
-					blockType == Material.AIR 		|| 
-					blockType == Material.LEAVES 	|| 
-			        blockType == Material.LEAVES_2  ||
-					blockType == Material.LONG_GRASS||
-					blockType == Material.LOG       ||
-			        blockType == Material.LOG_2     ||
-					blockType == Material.SNOW 		||
-					blockType == Material.VINE					
-					));
-			
-			//if final y value is extremely small, it's probably wrong
-			if(y < 5 && retriesLeft-- > 0)
-			{
-				tryAgain = true;
-				try
-				{
-					Thread.sleep(500); //sleep half a second before restarting the loop
-				}
-				catch(InterruptedException e) {}
-			}
-		}while(tryAgain);
+			blockType = PopulationDensity.ManagedWorld.getBlockAt(x, --y, z).getType();
+		}
+		while(	y > 0 && (
+				blockType == Material.AIR 		|| 
+				blockType == Material.LEAVES 	|| 
+		        blockType == Material.LEAVES_2  ||
+				blockType == Material.LONG_GRASS||
+				blockType == Material.LOG       ||
+		        blockType == Material.LOG_2     ||
+				blockType == Material.SNOW 		||
+				blockType == Material.VINE					
+				));
 				
 		if(blockType == Material.SIGN_POST)
 		{
@@ -486,6 +468,10 @@ public class DataStore
 		else if(blockType == Material.GLOWSTONE || (blockType == Material.getMaterial(PopulationDensity.instance.postTopperId)))
 		{
 		    y -= 3;
+		}
+		else if(blockType == Material.BEDROCK)
+		{
+		    y += 1;
 		}
 		
 		//if y value is under sea level, correct it to sea level (no posts should be that difficult to find)
@@ -809,14 +795,6 @@ public class DataStore
 			}
 			
 			sign.update();
-		}
-		
-		if(updateNeighboringRegions)
-		{
-			this.AddRegionPost(new RegionCoordinates(region.x - 1, region.z), false);
-			this.AddRegionPost(new RegionCoordinates(region.x + 1, region.z), false);
-			this.AddRegionPost(new RegionCoordinates(region.x, region.z - 1), false);
-			this.AddRegionPost(new RegionCoordinates(region.x, region.z + 1), false);
 		}
 	}
 	
