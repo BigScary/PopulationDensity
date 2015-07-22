@@ -562,7 +562,7 @@ public class PopulationDensity extends JavaPlugin
 					block = block.getRelative(BlockFace.UP);					
 				}
 				
-				player.teleport(block.getLocation());
+				new TeleportPlayerTask(player, block.getLocation()).run();
 			}
 			
 			return true;
@@ -868,7 +868,7 @@ public class PopulationDensity extends JavaPlugin
 		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY(), z);		
 		
 		//send him
-		player.teleport(teleportDestination);
+		new TeleportPlayerTask(player, teleportDestination).run();
 		
 		//kill bad guys in the area
 		PopulationDensity.removeMonstersAround(teleportDestination);

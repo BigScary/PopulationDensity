@@ -18,7 +18,14 @@
  
  package me.ryanhamshire.PopulationDensity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Location;
+import org.bukkit.entity.Animals;
+import org.bukkit.entity.Creature;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 
@@ -37,6 +44,25 @@ class TeleportPlayerTask implements Runnable
 	@Override
 	public void run()
 	{
-		player.teleport(destination, TeleportCause.PLUGIN);
+		ArrayList<Entity> entitiesToTeleport = new ArrayList<Entity>();
+		entitiesToTeleport.add(player);
+		
+		List<Entity> nearbyEntities = player.getNearbyEntities(10, 10, 10);
+		for(Entity entity : nearbyEntities)
+		{
+		    if(entity instanceof Creature)
+		    {
+		        Creature creature = (Creature) entity;
+		        if(creature.isLeashed() && player.equals(creature.getLeashHolder()) || player.equals(creature.getPassenger()))
+		        {
+		            entitiesToTeleport.add(creature);
+		        }
+		    }
+		}
+		
+	    for(Entity entity : entitiesToTeleport)
+	    {
+	        entity.teleport(destination, TeleportCause.PLUGIN);
+	    }
 	}
 }
