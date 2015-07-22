@@ -6,8 +6,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 
 import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -65,7 +67,7 @@ public class MonitorPerformanceTask implements Runnable
 	        stopGrinders = true;
 	    }
 	    
-	    if(tps <= 16 || (minutesLagging >= 5 && minutesLagging % 2 == 1))
+	    if(tps <= 16 || minutesLagging >= 5)
 	    {
 	        removeEntities = true;
 	    }
@@ -135,17 +137,19 @@ public class MonitorPerformanceTask implements Runnable
         HashMap<String, Integer> totalEntityCounter = new HashMap<String, Integer>();
         for(World world : PopulationDensity.instance.getServer().getWorlds())
         {
+            Environment environment = world.getEnvironment();
+            HashSet<Material> allowedSpawnSurfaces = EntityEventHandler.allowedSpawnBlocks.get(environment);
+            
             for(Chunk chunk : world.getLoadedChunks())
             {
                 HashMap<String, Integer> chunkEntityCounter = new HashMap<String, Integer>();
                 
                 Entity [] entities = chunk.getEntities();
                 int monsterCount = 0;
+                boolean removedAnimalThisPass = false;
                 for(Entity entity : entities)
                 {
                     EntityType entityType = entity.getType();
-                    Integer count = chunkEntityCounter.get(entity.getType());
-                    if(count == null) count = 0;
                     String entityTypeID = entity.getType().name();
                     if(entityType == EntityType.SHEEP)
                     {
@@ -174,6 +178,9 @@ public class MonitorPerformanceTask implements Runnable
                     EntityType type = entity.getType();
                     if(isAnimal && !thinnableAnimals.contains(type)) continue;
                     
+                    Integer count = chunkEntityCounter.get(entityTypeID);
+                    if(count == null) count = 0;
+                    
                     chunkEntityCounter.put(entityTypeID, count + 1);
                     
                     if(type == EntityType.EXPERIENCE_ORB)
@@ -194,17 +201,27 @@ public class MonitorPerformanceTask implements Runnable
                     }
                     else if(entity instanceof Monster)
                     {
-                        if(++monsterCount > 3)
+                        if(++monsterCount > 2)
                         {
                             entity.remove();
                             totalRemoved++;
                         }
+                        else
+                        {
+                            Material underType = entity.getLocation().getBlock().getRelative(BlockFace.DOWN).getType();
+                            if(!allowedSpawnSurfaces.contains(underType))
+                            {
+                                entity.remove();
+                                totalRemoved++;
+                            }
+                        }
                     }
                     else if(isAnimal)
                     {
-                        if(count > 20 || (count > 5 && count % 5 == 1))
+                        if(count > 20 || (count > 5 && !removedAnimalThisPass))
                         {
                             ((Animals) entity).setHealth(0);
+                            removedAnimalThisPass = true;
                             totalRemoved++;
                         }
                     }

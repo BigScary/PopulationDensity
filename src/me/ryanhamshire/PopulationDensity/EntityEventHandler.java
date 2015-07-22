@@ -55,25 +55,30 @@ import org.bukkit.inventory.ItemStack;
 public class EntityEventHandler implements Listener
 {
     //block types monsters may spawn on when grinders are disabled
-    private HashMap<Environment, HashSet<Material>> allowedSpawnBlocks = new HashMap<Environment, HashSet<Material>>();  
+    static HashMap<Environment, HashSet<Material>> allowedSpawnBlocks;  
     
 	public EntityEventHandler()
 	{
-	    this.allowedSpawnBlocks.put(Environment.NORMAL, new HashSet<Material>(Arrays.asList(
-	        Material.GRASS,
-	        Material.SAND,
-	        Material.GRAVEL,
-	        Material.STONE,
-	        Material.MOSSY_COBBLESTONE,
-	        Material.OBSIDIAN)));
+	    if(allowedSpawnBlocks == null)
+	    {
+	        allowedSpawnBlocks = new HashMap<Environment, HashSet<Material>>();
 	    
-	    this.allowedSpawnBlocks.put(Environment.NETHER, new HashSet<Material>(Arrays.asList(
-            Material.NETHERRACK,
-            Material.NETHER_BRICK)));
-	    
-	    this.allowedSpawnBlocks.put(Environment.THE_END, new HashSet<Material>(Arrays.asList(
-            Material.ENDER_STONE,
-            Material.OBSIDIAN)));
+	        allowedSpawnBlocks.put(Environment.NORMAL, new HashSet<Material>(Arrays.asList(
+    	        Material.GRASS,
+    	        Material.SAND,
+    	        Material.GRAVEL,
+    	        Material.STONE,
+    	        Material.MOSSY_COBBLESTONE,
+    	        Material.OBSIDIAN)));
+    	    
+    	    allowedSpawnBlocks.put(Environment.NETHER, new HashSet<Material>(Arrays.asList(
+                Material.NETHERRACK,
+                Material.NETHER_BRICK)));
+    	    
+    	    allowedSpawnBlocks.put(Environment.THE_END, new HashSet<Material>(Arrays.asList(
+                Material.ENDER_STONE,
+                Material.OBSIDIAN)));
+	    }
 	}
     
     //when an entity (includes both dynamite and creepers) explodes...
