@@ -74,37 +74,6 @@ public class MonitorPerformanceTask implements Runnable
 	    	    
 	    PopulationDensity.minutesLagging = minutesLagging;
 	    
-	    //if anything important is changing or happening, log some info
-	    if(PopulationDensity.bootingIdlePlayersForLag != bootIdlePlayers ||
-           PopulationDensity.grindersStopped != stopGrinders ||
-           removeEntities)
-	    {
-	        String logEntry = "TPS: " + tps + " of 20.  Underperforming for " + minutesLagging + " minutes.  ";
-	        
-	        if(PopulationDensity.bootingIdlePlayersForLag != bootIdlePlayers)
-	        {
-	             if(bootIdlePlayers)
-	                 logEntry += "Now booting idle players.  ";
-	             else
-	                 logEntry += "Allowing players to idle while there are slots open.  ";
-	        }
-	        
-	        if(PopulationDensity.grindersStopped != stopGrinders)
-	        {
-	            if(stopGrinders)
-	                logEntry += "Temporarily disabled monster grinders.  ";
-	            else
-	                logEntry += "Re-enabled monster grinders.  ";
-	        }
-	        
-	        if(removeEntities && PopulationDensity.instance.thinAnimalAndMonsterCrowds)
-	        {
-	            logEntry += "Actively scanning to remove densely-packed entities...";
-	        }
-	        
-	        PopulationDensity.AddLogEntry(logEntry);
-	    }
-	    
 	    PopulationDensity.bootingIdlePlayersForLag = bootIdlePlayers;
 	    PopulationDensity.grindersStopped = stopGrinders;
 	    
