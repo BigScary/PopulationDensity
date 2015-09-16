@@ -208,7 +208,7 @@ public class EntityEventHandler implements Listener
 		    
 		    else if(reason == SpawnReason.NATURAL && entity instanceof Monster)
 		    {
-		        HashSet<Material> allowedBlockTypes = this.allowedSpawnBlocks.get(entity.getWorld().getEnvironment());
+		        HashSet<Material> allowedBlockTypes = allowedSpawnBlocks.get(entity.getWorld().getEnvironment());
 		        if(!allowedBlockTypes.contains(entity.getLocation().getBlock().getRelative(BlockFace.DOWN).getType()))
 		        {
 		            event.setCancelled(true);
@@ -216,6 +216,23 @@ public class EntityEventHandler implements Listener
 		        }
 		    }
 		}
+	    
+	    //speed limit on monster grinder spawn rates
+	    if(reason != SpawnReason.SPAWNER_EGG && entity instanceof Monster)
+	    {
+	        Chunk chunk = entity.getLocation().getChunk();
+	        int monstersNearby = 0;
+	        Entity [] entities = chunk.getEntities();
+	        for(Entity nearbyEntity : entities)
+	        {
+	            if(nearbyEntity instanceof Monster) monstersNearby++;
+	            if(monstersNearby > PopulationDensity.instance.maxMonstersInChunkForSpawn)
+	            {
+	                event.setCancelled(true);
+	                return;
+	            }
+	        }
+	    }
 	    
 	    //natural spawns may cause animal spawns to keep new player resources available
 	    if(reason == SpawnReason.NATURAL)

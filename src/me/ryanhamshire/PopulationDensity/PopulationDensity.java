@@ -103,6 +103,7 @@ public class PopulationDensity extends JavaPlugin
     public Integer outerPlatformData = 0;
     public Integer innerPlatformId = 98;
     public Integer innerPlatformData = 0;
+    public int maxMonstersInChunkForSpawn;
 	
 	public int minimumRegionPostY;
 	
@@ -180,6 +181,7 @@ public class PopulationDensity extends JavaPlugin
 		String post = config.getString("PopulationDensity.PostDesign.PostBlocks", "89:0");
 		String outerPlat = config.getString("PopulationDensity.PostDesign.PlatformOuterRing", "98:0");  //default stone brick
 		String innerPlat = config.getString("PopulationDensity.PostDesign.PlatformInnerRing", "98:0");
+		this.maxMonstersInChunkForSpawn = config.getInt("PopulationDensity.Max Monsters In Chunk To Spawn More", 2);
 		
 		SimpleEntry<Integer, Integer> result;
 		result = this.processMaterials(topper);
@@ -236,6 +238,7 @@ public class PopulationDensity extends JavaPlugin
         config.set("PopulationDensity.PostDesign.PostBlocks", post);
         config.set("PopulationDensity.PostDesign.PlatformOuterRing", outerPlat);
         config.set("PopulationDensity.PostDesign.PlatformInnerRing", innerPlat);
+        config.set("PopulationDensity.Max Monsters In Chunk To Spawn More", this.maxMonstersInChunkForSpawn);
 		
 		//this is a combination load/preprocess/save for custom signs on the region posts
 		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
