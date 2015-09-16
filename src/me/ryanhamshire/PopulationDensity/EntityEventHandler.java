@@ -238,7 +238,7 @@ public class EntityEventHandler implements Listener
     			Block underBlock = event.getLocation().getBlock().getRelative(BlockFace.DOWN);
     			if(underBlock.getType() == Material.GRASS && --this.respawnAnimalCounter == 0)
     			{
-    				this.respawnAnimalCounter = 100;
+    				this.respawnAnimalCounter = 10;
     				
     				//check the chunk for other animals
     				Chunk chunk = entity.getLocation().getChunk();
