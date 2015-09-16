@@ -1,7 +1,7 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
 softdepend: [Multiverse-Core, My Worlds, Transporter, MystCraft]
-version: 4.9.3
+version: 5.0
 commands:
    visit:
       description: Teleports the player to a specified region.
@@ -70,6 +70,11 @@ commands:
       description: Lists all available regions.
       usage: /listregions
       aliases: [regions, regionlist, regionslist, allregions]
+   sendregion:
+      description: Sends a player to his home region or to a specificied region.
+      usage: /SendRegion <player> <region> (if no region specified, player goes home)
+      aliases: [sendtoregion]
+      permission: populationdensity.sendregion
 permissions:
     populationdensity.*:
         description: Grants all administrative privileges.
@@ -81,6 +86,7 @@ permissions:
             populationdensity.adminlogin: true
             populationdensity.setloginpriority: true
             populationdensity.forcethinning: true
+            populationdensity.sendregion: true
     populationdensity.newestregion:
         description: Grants permission to use /NewestRegion.
         default: op
@@ -110,6 +116,9 @@ permissions:
         default: op
     populationdensity.forcethinning:
         description: Grants a player permission to use /ThinEntities.
+        default: op
+    populationdensity.sendregion:
+        description: Grants a player permission to use /SendRegion.
         default: op
     populationdensity.simulatelag:
         description: Grants a player permission to use /SimLag.

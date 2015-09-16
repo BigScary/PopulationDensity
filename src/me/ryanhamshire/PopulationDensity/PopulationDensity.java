@@ -379,7 +379,7 @@ public class PopulationDensity extends JavaPlugin
 			
 			if(!this.playerCanTeleport(player, false)) return true;
 			
-			Player targetPlayer = this.getServer().getPlayer(args[0]);
+			Player targetPlayer = this.getServer().getPlayerExact(args[0]);
 			if(targetPlayer != null)
 			{
 			    PlayerData targetPlayerData = this.dataStore.getPlayerData(targetPlayer);
@@ -609,6 +609,37 @@ public class PopulationDensity extends JavaPlugin
 			return true;
 		}
 		
+		else if(cmd.getName().equalsIgnoreCase("sendregion"))
+        {
+            if(args.length < 1) return false;
+            
+            Player targetPlayer = this.getServer().getPlayerExact(args[0]);
+            if(targetPlayer != null)
+            {
+                playerData = this.dataStore.getPlayerData(targetPlayer);
+                RegionCoordinates destination = playerData.homeRegion;
+                if(args.length > 1)
+                {
+                    destination = this.dataStore.getRegionCoordinates(args[1].toLowerCase());                                  
+                    if(destination == null)
+                    {
+                        PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, args[1]);
+                        return true;
+                    }
+                }
+                
+                //otherwise, teleport the target player to the destination region                  
+                this.TeleportPlayer(targetPlayer, destination, true);
+                PopulationDensity.sendMessage(player, TextMode.Success, Messages.PlayerMoved);
+            }
+            else
+            {
+                PopulationDensity.sendMessage(player, TextMode.Err, Messages.PlayerNotFound, args[0]);
+            }
+            
+            return true;
+        }
+		
 		else if(cmd.getName().equalsIgnoreCase("sethomeregion") && player != null)
 		{
 			//if not in the managed world, /movein doesn't make sense
@@ -832,7 +863,7 @@ public class PopulationDensity extends JavaPlugin
 			if(currentCenter.distanceSquared(player.getLocation()) < 100) return true;
 			
 			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NotCloseToPost);
-			player.sendMessage(ChatColor.YELLOW + PopulationDensity.instance.dataStore.getMessage(Messages.HelpMessage) + ChatColor.UNDERLINE + "" + ChatColor.AQUA + "http://bit.ly/mcregions");
+			PopulationDensity.sendMessage(player, TextMode.Instr, Messages.HelpMessage1, ChatColor.UNDERLINE + "" + ChatColor.AQUA + "http://bit.ly/mcregions");
 			return false;			
 		}
 	}

@@ -816,7 +816,7 @@ public class DataStore
         this.addDefault(defaults, Messages.NoBreakSpawn, "You can't break blocks this close to a player spawn point.", null);
         this.addDefault(defaults, Messages.NoBuildPost, "You can't place blocks this close to the region post.", null);
         this.addDefault(defaults, Messages.NoBuildSpawn, "You can't place blocks this close to a player spawn point.", null);
-        this.addDefault(defaults, Messages.HelpMessage, "Region post help and commands: ", null);
+        this.addDefault(defaults, Messages.HelpMessage1, "Region post help and commands: {0} ", "0: Help URL");
         this.addDefault(defaults, Messages.BuildingAwayFromHome, "You're building outside of your home region.  If you'd like to make this region your new home to help you return here later, use /MoveIn.", null);
         this.addDefault(defaults, Messages.NoTeleportThisWorld, "You can't teleport from this world.", null);
         this.addDefault(defaults, Messages.OnlyHomeCityHere, "You're limited to /HomeRegion and /CityRegion here.", null);
@@ -850,6 +850,7 @@ public class DataStore
         this.addDefault(defaults, Messages.PerformanceScore, "Current server performance score is {0}%.", "0: performance score");
         this.addDefault(defaults, Messages.PerformanceScore_Lag, "  The server is actively working to reduce lag - please be patient while automatic lag reduction takes effect.", null);
         this.addDefault(defaults, Messages.PerformanceScore_NoLag, "The server is running at normal speed.  If you're experiencing lag, check your graphics settings and internet connection.  ", null);
+        this.addDefault(defaults, Messages.PlayerMoved, "Player moved.", null);
         
         //load the config file
         FileConfiguration config = YamlConfiguration.loadConfiguration(new File(messagesFilePath));

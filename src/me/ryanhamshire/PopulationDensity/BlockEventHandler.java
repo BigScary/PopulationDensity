@@ -27,9 +27,12 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
 public class BlockEventHandler implements Listener 
@@ -142,7 +145,51 @@ public class BlockEventHandler implements Listener
         
         if(!this.nearRegionPost(block.getLocation(), RegionCoordinates.fromLocation(block.getLocation()), 1)) return;
         
-        player.sendMessage(ChatColor.GREEN + PopulationDensity.instance.dataStore.getMessage(Messages.HelpMessage) + ChatColor.AQUA + "http://bit.ly/mcregions");
+        PopulationDensity.sendMessage(player, TextMode.Instr, Messages.HelpMessage1, ChatColor.UNDERLINE + "" + ChatColor.AQUA + "http://bit.ly/mcregions");
+    }
+    
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void onBlockPistonExtend (BlockPistonExtendEvent event)
+    {       
+        Block pistonBlock = event.getBlock();
+        
+        if(!pistonBlock.getWorld().equals(PopulationDensity.ManagedWorld)) return;
+        
+        RegionCoordinates pistonRegion = RegionCoordinates.fromLocation(pistonBlock.getLocation());
+        if(this.nearRegionPost(pistonBlock.getLocation(), pistonRegion, PopulationDensity.instance.postProtectionRadius + 6))
+        {
+            List<Block> blocks = event.getBlocks();
+            for(Block block : blocks)
+            {
+                if(this.nearRegionPost(block.getLocation(), pistonRegion, PopulationDensity.instance.postProtectionRadius + 1))
+                {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+    }
+    
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void onBlockPistonRetract (BlockPistonRetractEvent event)
+    {
+        Block pistonBlock = event.getBlock();
+        
+        if(!pistonBlock.getWorld().equals(PopulationDensity.ManagedWorld)) return;
+        
+        RegionCoordinates pistonRegion = RegionCoordinates.fromLocation(pistonBlock.getLocation());
+        if(this.nearRegionPost(pistonBlock.getLocation(), pistonRegion, PopulationDensity.instance.postProtectionRadius + 2))
+        {
+            List<Block> blocks = event.getBlocks();
+            for(Block block : blocks)
+            {
+                if(this.nearRegionPost(block.getLocation(), pistonRegion, PopulationDensity.instance.postProtectionRadius))
+                {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
     }
 	
 	//determines whether or not you're "near" a region post
