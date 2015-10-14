@@ -21,6 +21,7 @@ package me.ryanhamshire.PopulationDensity;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -256,12 +257,11 @@ public class EntityEventHandler implements Listener
     			Block underBlock = event.getLocation().getBlock().getRelative(BlockFace.DOWN);
     			if(underBlock.getType() == Material.GRASS && --this.respawnAnimalCounter == 0)
     			{
-    				this.respawnAnimalCounter = 10;
+    				this.respawnAnimalCounter = 5;
     				
-    				//check the chunk for other animals
-    				Chunk chunk = entity.getLocation().getChunk();
-    				Entity [] entities = chunk.getEntities();
-    				for(int i = 0; i < entities.length; i++)
+    				//check for other nearby animals
+    				List<Entity> entities = entity.getNearbyEntities(30, 30, 30);
+    				for(int i = 0; i < entities.size(); i++)
     				{
     					if(entity instanceof Animals) return;
     				}
@@ -271,19 +271,19 @@ public class EntityEventHandler implements Listener
     				//decide what to spawn based on the type of monster
     				if(entity instanceof Creeper)
     				{
-    					animalType = EntityType.COW;
+    				    animalType = EntityType.CHICKEN;
     				}
     				else if(entity instanceof Zombie)
     				{
-    					animalType = EntityType.CHICKEN;
+    				    animalType = EntityType.COW;
     				}
     				else if(entity instanceof Spider)
     				{
-    					animalType = EntityType.PIG;
+    				    animalType = EntityType.SHEEP;
     				}
     				else if(entity instanceof Skeleton)
     				{
-    					animalType = EntityType.SHEEP;
+    				    animalType = EntityType.PIG;
     				}
     				else if(entity instanceof Enderman)
                     {
@@ -296,7 +296,6 @@ public class EntityEventHandler implements Listener
     				//spawn an animal at the entity's location and regrow some grass
     				if(animalType != null)
     				{
-    					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
     					entity.getWorld().spawnEntity(entity.getLocation(), animalType);
     					this.regrow(entity.getLocation().getBlock(), 4);
     				}
