@@ -22,11 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Animals;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Tameable;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 
 //teleports a player.  useful as scheduled task so that a joining player may be teleported (otherwise error)
@@ -56,6 +55,14 @@ class TeleportPlayerTask implements Runnable
 		        if(creature.isLeashed() && player.equals(creature.getLeashHolder()) || player.equals(creature.getPassenger()))
 		        {
 		            entitiesToTeleport.add(creature);
+		        }
+		    }
+		    else if(entity instanceof Tameable)
+		    {
+		        Tameable tameable = (Tameable) entity;
+		        if(tameable.isTamed() && tameable.getOwner().getUniqueId().equals(player.getUniqueId()))
+		        {
+		            entitiesToTeleport.add(entity);
 		        }
 		    }
 		}

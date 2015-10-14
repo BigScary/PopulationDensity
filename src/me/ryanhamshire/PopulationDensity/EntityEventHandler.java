@@ -104,7 +104,8 @@ public class EntityEventHandler implements Listener
 	
 	//when an item despawns
 	//FEATURE: in the newest region only, regrow trees from fallen saplings
-	@EventHandler(ignoreCancelled = true)
+	@SuppressWarnings("deprecation")
+    @EventHandler(ignoreCancelled = true)
 	public void onItemDespawn (ItemDespawnEvent event)
 	{
 		//respect config option
@@ -304,7 +305,8 @@ public class EntityEventHandler implements Listener
 		}
 	}
 	
-	private void regrow(Block center, int radius)
+	@SuppressWarnings("deprecation")
+    private void regrow(Block center, int radius)
 	{
         Block toHandle;
         for (int x = -radius; x <= radius; x++)

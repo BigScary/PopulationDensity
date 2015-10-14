@@ -382,7 +382,8 @@ public class PopulationDensity extends JavaPlugin
 			
 			if(!this.playerCanTeleport(player, false)) return true;
 			
-			Player targetPlayer = this.getServer().getPlayerExact(args[0]);
+			@SuppressWarnings("deprecation")
+            Player targetPlayer = this.getServer().getPlayerExact(args[0]);
 			if(targetPlayer != null)
 			{
 			    PlayerData targetPlayerData = this.dataStore.getPlayerData(targetPlayer);
@@ -594,7 +595,8 @@ public class PopulationDensity extends JavaPlugin
 			if(args.length < 1) return false;
 			
 			//send a notification to the invitee, if he's available
-			Player invitee = this.getServer().getPlayer(args[0]);			
+			@SuppressWarnings("deprecation")
+            Player invitee = this.getServer().getPlayer(args[0]);			
 			if(invitee != null)
 			{
 				playerData = this.dataStore.getPlayerData(invitee);
@@ -616,6 +618,7 @@ public class PopulationDensity extends JavaPlugin
         {
             if(args.length < 1) return false;
             
+            @SuppressWarnings("deprecation")
             Player targetPlayer = this.getServer().getPlayerExact(args[0]);
             if(targetPlayer != null)
             {
@@ -910,7 +913,8 @@ public class PopulationDensity extends JavaPlugin
 	
 	//scans the open region for resources and may close the region (and open a new one) if accessible resources are low
 	//may repeat itself if the regions it opens are also not acceptably rich in resources
-	public void scanRegion(RegionCoordinates region, boolean openNewRegions)
+	@SuppressWarnings("deprecation")
+    public void scanRegion(RegionCoordinates region, boolean openNewRegions)
 	{						
 		AddLogEntry("Examining available resources in region \"" + region.toString() + "\"...");						
 		
@@ -1071,7 +1075,8 @@ public class PopulationDensity extends JavaPlugin
 	
 	private OfflinePlayer resolvePlayer(String name) 
 	{
-		Player player = this.getServer().getPlayer(name);
+		@SuppressWarnings("deprecation")
+        Player player = this.getServer().getPlayer(name);
 		if(player != null) return player;
 		
 		OfflinePlayer [] offlinePlayers = this.getServer().getOfflinePlayers();
@@ -1084,18 +1089,6 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		return null;
-	}
-	
-	private static void sendMessage(Player player, String message)
-	{
-		if(player != null)
-		{
-			player.sendMessage(message);
-		}
-		else
-		{
-			PopulationDensity.AddLogEntry(message);
-		}
 	}
 	
 	static void removeMonstersAround(Location location)

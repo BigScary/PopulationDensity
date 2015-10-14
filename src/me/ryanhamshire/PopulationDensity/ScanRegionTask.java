@@ -261,7 +261,8 @@ public class ScanRegionTask extends Thread
 		PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, resultsTask, 5L);
 	}
 	
-	private Material getMaterialAt(Position position)
+	@SuppressWarnings("deprecation")
+    private Material getMaterialAt(Position position)
 	{
 		Material material = null;
 		

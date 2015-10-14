@@ -73,8 +73,8 @@ public class PlayerEventHandler implements Listener {
 		 * player.getName());
 		 */
 
-		Collection<Player> playersOnline = (Collection<Player>)PopulationDensity.instance.getServer()
-				.getOnlinePlayers();
+		@SuppressWarnings("unchecked")
+        Collection<Player> playersOnline = (Collection<Player>)PopulationDensity.instance.getServer().getOnlinePlayers();
 		int totalSlots = PopulationDensity.instance.getServer().getMaxPlayers();
 
 		// determine player's effective priority

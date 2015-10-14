@@ -424,7 +424,8 @@ public class DataStore
 	}
 	
 	//actually edits the world to create a region post at the center of the specified region	
-	public void AddRegionPost(RegionCoordinates region) throws ChunkLoadException
+	@SuppressWarnings("deprecation")
+    public void AddRegionPost(RegionCoordinates region) throws ChunkLoadException
 	{
 		//if region post building is disabled, don't do anything
 		if(!PopulationDensity.instance.buildRegionPosts) return;
