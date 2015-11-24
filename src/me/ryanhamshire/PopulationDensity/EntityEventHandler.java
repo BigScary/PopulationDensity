@@ -219,8 +219,8 @@ public class EntityEventHandler implements Listener
 		    }
 		}
 	    
-	    //speed limit on monster grinder spawn rates
-	    if(reason != SpawnReason.SPAWNER_EGG && entity instanceof Monster)
+	    //speed limit on monster grinder spawn rates - only affects grinders that rely on naturally-spawning monsters.
+	    if(reason != SpawnReason.SPAWNER_EGG && reason != SpawnReason.SPAWNER && entity instanceof Monster)
 	    {
 	        Chunk chunk = entity.getLocation().getChunk();
 	        int monstersNearby = 0;
