@@ -222,13 +222,12 @@ public class EntityEventHandler implements Listener
 	    //speed limit on monster grinder spawn rates - only affects grinders that rely on naturally-spawning monsters.
 	    if(reason != SpawnReason.SPAWNER_EGG && reason != SpawnReason.SPAWNER && entity instanceof Monster)
 	    {
-	        Chunk chunk = entity.getLocation().getChunk();
 	        int monstersNearby = 0;
-	        Entity [] entities = chunk.getEntities();
+	        List<Entity> entities = entity.getNearbyEntities(10,  20,  10);
 	        for(Entity nearbyEntity : entities)
 	        {
 	            if(nearbyEntity instanceof Monster) monstersNearby++;
-	            if(monstersNearby > PopulationDensity.instance.maxMonstersInChunkForSpawn)
+	            if(monstersNearby > PopulationDensity.instance.nearbyMonsterSpawnLimit)
 	            {
 	                event.setCancelled(true);
 	                return;
