@@ -359,4 +359,20 @@ public class PlayerEventHandler implements Listener {
 			PopulationDensity.removeMonstersAround(homeRegionCenter);
 		}
 	}
+	
+	@EventHandler(ignoreCancelled = true)
+    public synchronized void onPlayerChat(AsyncPlayerChatEvent event)
+    {
+        String msg = event.getMessage();
+        
+        if(msg.equalsIgnoreCase(PopulationDensity.instance.dataStore.getMessage(Messages.Lag)))
+        {
+            Player player = event.getPlayer();
+            
+            event.getRecipients().clear();
+            event.getRecipients().add(player);
+            
+            player.performCommand("lag");
+        }
+    }
 }

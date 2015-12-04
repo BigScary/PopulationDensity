@@ -852,6 +852,7 @@ public class DataStore
         this.addDefault(defaults, Messages.PerformanceScore_Lag, "  The server is actively working to reduce lag - please be patient while automatic lag reduction takes effect.", null);
         this.addDefault(defaults, Messages.PerformanceScore_NoLag, "The server is running at normal speed.  If you're experiencing lag, check your graphics settings and internet connection.  ", null);
         this.addDefault(defaults, Messages.PlayerMoved, "Player moved.", null);
+        this.addDefault(defaults, Messages.Lag, "lag", null);
         
         //load the config file
         FileConfiguration config = YamlConfiguration.loadConfiguration(new File(messagesFilePath));
