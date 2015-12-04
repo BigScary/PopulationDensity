@@ -104,6 +104,7 @@ public class PopulationDensity extends JavaPlugin
     public Integer innerPlatformId = 98;
     public Integer innerPlatformData = 0;
     public int nearbyMonsterSpawnLimit;
+    public int maxRegionNameLength = 10;
 	
 	public int minimumRegionPostY;
 	
@@ -176,6 +177,7 @@ public class PopulationDensity extends JavaPlugin
 		this.woodMinimum = config.getInt("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", 200);
 		this.resourceMinimum = config.getInt("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", 200);
 		this.postProtectionRadius = config.getInt("PopulationDensity.PostProtectionDistance", 2);
+		this.maxRegionNameLength = config.getInt("PopulationDensity.Maximum Region Name Length", 10);
 		
 		String topper = config.getString("PopulationDensity.PostDesign.TopBlock", "89:0");  //default glowstone
 		String post = config.getString("PopulationDensity.PostDesign.PostBlocks", "89:0");
@@ -235,6 +237,7 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", this.woodMinimum);
 		config.set("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", this.resourceMinimum);
 		config.set("PopulationDensity.PostProtectionDistance", this.postProtectionRadius);
+		config.set("PopulationDensity.Maximum Region Name Length", this.maxRegionNameLength);
 		config.set("PopulationDensity.PostDesign.TopBlock", topper);
         config.set("PopulationDensity.PostDesign.PostBlocks", post);
         config.set("PopulationDensity.PostDesign.PlatformOuterRing", outerPlat);
@@ -484,9 +487,9 @@ public class PopulationDensity extends JavaPlugin
 			
 			String name = args[0];
 			
-			if(name.length() > 10)
+			if(name.length() > this.maxRegionNameLength)
 			{
-				PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNamesTenLetters);
+				PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNameLength, maxRegionNameLength);
 				return true;
 			}
 			
