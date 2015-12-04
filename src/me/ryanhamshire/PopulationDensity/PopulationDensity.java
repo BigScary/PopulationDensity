@@ -418,7 +418,7 @@ public class PopulationDensity extends JavaPlugin
 			else
 			{
 			    //find the specified region, and send an error message if it's not found
-    			RegionCoordinates region = this.dataStore.getRegionCoordinates(args[0].toLowerCase());									
+    			RegionCoordinates region = this.dataStore.getRegionCoordinates(args[0]);									
     			if(region == null)
     			{
     				PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, args[0]);
@@ -638,7 +638,7 @@ public class PopulationDensity extends JavaPlugin
                 RegionCoordinates destination = playerData.homeRegion;
                 if(args.length > 1)
                 {
-                    destination = this.dataStore.getRegionCoordinates(args[1].toLowerCase());                                  
+                    destination = this.dataStore.getRegionCoordinates(args[1]);                                  
                     if(destination == null)
                     {
                         PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, args[1]);

@@ -82,7 +82,7 @@ public class DataStore
                     //(this constructor throws an exception if it can't do the conversion)
                     RegionCoordinates regionCoordinates = new RegionCoordinates(files[i].getName());
                     String regionName = Files.readFirstLine(files[i], Charset.forName("UTF-8"));
-                    this.nameToCoordsMap.put(regionName, regionCoordinates);
+                    this.nameToCoordsMap.put(regionName.toLowerCase(), regionCoordinates);
                     this.coordsToNameMap.put(regionCoordinates, regionName);
                 }
                 
@@ -362,9 +362,6 @@ public class DataStore
 	
 	void nameRegion(RegionCoordinates coords, String name) 
 	{
-		//region names are always lowercase
-		name = name.toLowerCase();
-		
 		//delete any existing data for the region at these coordinates
 		String oldRegionName = this.getRegionName(coords);
 		if(oldRegionName != null)
@@ -374,6 +371,8 @@ public class DataStore
 			
 			File oldRegionNameFile = new File(regionDataFolderPath + File.separator + oldRegionName);
 			oldRegionNameFile.delete();
+			this.coordsToNameMap.remove(coords);
+			this.nameToCoordsMap.remove(oldRegionName.toLowerCase());
 		}
 
 		//"create" the region by saving necessary data to disk
@@ -389,7 +388,7 @@ public class DataStore
 			
 			//cache in memory
 			this.coordsToNameMap.put(coords, name);
-			this.nameToCoordsMap.put(name, coords);
+			this.nameToCoordsMap.put(name.toLowerCase(), coords);
 		}
 		
 		//in case of any problem, log the details
@@ -420,7 +419,7 @@ public class DataStore
 	//similar to above, goes to disk to get the coordinates that go with a region name
 	public RegionCoordinates getRegionCoordinates(String regionName)
 	{
-		return this.nameToCoordsMap.get(regionName);
+		return this.nameToCoordsMap.get(regionName.toLowerCase());
 	}
 	
 	//actually edits the world to create a region post at the center of the specified region	
