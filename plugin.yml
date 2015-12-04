@@ -6,15 +6,15 @@ commands:
    visit:
       description: Teleports the player to a specified region.
       usage: /visit <online player name> OR /visit <region name>
-      aliases: [visitregion, vr, tpa, visitpost]
+      aliases: [visitregion, vr, visitpost]
    homeregion:
       description: Returns the player to his/her home region.
-      usage: /homeregion
-      aliases: [home, gohome, homepost]
+      usage: /HomeRegion
+      aliases: [gohome, homepost]
    sethomeregion:
       description: Updates a user's home region to his current region.
-      usage: /sethome
-      aliases: [sethome, movein, sethomeregion, sethomepost]
+      usage: /SetHomeRegion
+      aliases: [movein, sethomeregion, sethomepost]
    nameregion:
       description: Names a wilderness region.
       usage: /nameregion <name>
