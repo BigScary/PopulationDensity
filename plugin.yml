@@ -70,6 +70,7 @@ commands:
       description: Lists all available regions.
       usage: /listregions
       aliases: [regions, regionlist, regionslist, allregions]
+      permission: populationdensity.listregions
    sendregion:
       description: Sends a player to his home region or to a specificied region.
       usage: /SendRegion <player> <region> (if no region specified, player goes home)
@@ -123,3 +124,6 @@ permissions:
     populationdensity.simulatelag:
         description: Grants a player permission to use /SimLag.
         default: op
+    populationdensity.listregions:
+        description: Grants access to /ListRegions.
+        default: true
