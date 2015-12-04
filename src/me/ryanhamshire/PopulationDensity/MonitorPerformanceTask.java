@@ -57,13 +57,19 @@ public class MonitorPerformanceTask implements Runnable
 	    else
 	    {
 	        minutesLagging = PopulationDensity.minutesLagging + 1;
-	        bootIdlePlayers = true;
+	        if(PopulationDensity.instance.config_bootIdlePlayersWhenLagging)
+	        {
+	            bootIdlePlayers = true;
+	        }
 	    }
 	    
 	    if(tps <= 19)
 	    {
 	        PopulationDensity.minutesLagging += 1;
-	        stopGrinders = true;
+	        if(PopulationDensity.instance.config_disableGrindersWhenLagging)
+	        {
+	            stopGrinders = true;
+	        }
 	    }
 	    
 	    if(tps <= 16 || minutesLagging >= 5)
@@ -76,7 +82,7 @@ public class MonitorPerformanceTask implements Runnable
 	    PopulationDensity.bootingIdlePlayersForLag = bootIdlePlayers;
 	    PopulationDensity.grindersStopped = stopGrinders;
 	    
-	    if(removeEntities)
+	    if(removeEntities && PopulationDensity.instance.thinAnimalAndMonsterCrowds)
 	    {
 	        thinEntities();
 	    }

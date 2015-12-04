@@ -105,6 +105,9 @@ public class PopulationDensity extends JavaPlugin
     public Integer innerPlatformData = 0;
     public int nearbyMonsterSpawnLimit;
     public int maxRegionNameLength = 10;
+    
+    public boolean config_bootIdlePlayersWhenLagging;
+    public boolean config_disableGrindersWhenLagging;
 	
 	public int minimumRegionPostY;
 	
@@ -179,6 +182,9 @@ public class PopulationDensity extends JavaPlugin
 		this.postProtectionRadius = config.getInt("PopulationDensity.PostProtectionDistance", 2);
 		this.maxRegionNameLength = config.getInt("PopulationDensity.Maximum Region Name Length", 10);
 		
+		this.config_disableGrindersWhenLagging = config.getBoolean("PopulationDensity.Disable Monster Grinders When Lagging", true);
+		this.config_bootIdlePlayersWhenLagging = config.getBoolean("PopulationDensity.Boot Idle Players When Lagging", true);
+		
 		String topper = config.getString("PopulationDensity.PostDesign.TopBlock", "89:0");  //default glowstone
 		String post = config.getString("PopulationDensity.PostDesign.PostBlocks", "89:0");
 		String outerPlat = config.getString("PopulationDensity.PostDesign.PlatformOuterRing", "98:0");  //default stone brick
@@ -231,7 +237,10 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.GrassRegrows", this.regrowGrass);
 		config.set("PopulationDensity.AnimalsRespawn", this.respawnAnimals);
 		config.set("PopulationDensity.TreesRegrow", this.regrowTrees);
+        config.set("PopulationDensity.Max Monsters Nearby For More To Spawn", this.nearbyMonsterSpawnLimit);
 		config.set("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", this.thinAnimalAndMonsterCrowds);
+        config.set("PopulationDensity.Disable Monster Grinders When Lagging", this.config_disableGrindersWhenLagging);
+        config.set("PopulationDensity.Boot Idle Players When Lagging", this.config_bootIdlePlayersWhenLagging);
 		config.set("PopulationDensity.MinimumRegionPostY", this.minimumRegionPostY);
 		config.set("PopulationDensity.PreciseWorldSpawn", this.preciseWorldSpawn);
 		config.set("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", this.woodMinimum);
@@ -242,7 +251,6 @@ public class PopulationDensity extends JavaPlugin
         config.set("PopulationDensity.PostDesign.PostBlocks", post);
         config.set("PopulationDensity.PostDesign.PlatformOuterRing", outerPlat);
         config.set("PopulationDensity.PostDesign.PlatformInnerRing", innerPlat);
-        config.set("PopulationDensity.Max Monsters Nearby For More To Spawn", this.nearbyMonsterSpawnLimit);
 		
 		//this is a combination load/preprocess/save for custom signs on the region posts
 		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
