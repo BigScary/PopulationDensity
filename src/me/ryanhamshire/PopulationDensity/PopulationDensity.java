@@ -440,9 +440,9 @@ public class PopulationDensity extends JavaPlugin
                 return this.dataStore.getMessage(Messages.RegionNamesNoSpaces);
             }
             
-            if(!Character.isLetter(c))
+            if(!Character.isLetter(c) && !Character.isDigit(c))
             {
-                return this.dataStore.getMessage(Messages.RegionNamesOnlyLetters);
+                return this.dataStore.getMessage(Messages.RegionNamesOnlyLettersAndNumbers);
             }                   
         }
         

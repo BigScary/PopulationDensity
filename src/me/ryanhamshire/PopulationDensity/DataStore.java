@@ -848,7 +848,7 @@ public class DataStore
         this.addDefault(defaults, Messages.WhichRegion, "You're in the {0} region.", null);
         this.addDefault(defaults, Messages.RegionNamesNoSpaces, "Region names may not include spaces.", null);
         this.addDefault(defaults, Messages.RegionNameLength, "Region names must be at most {0} letters long.", "0: maximum length specified in config.yml");
-        this.addDefault(defaults, Messages.RegionNamesOnlyLetters, "Region names may only include letters.", null);
+        this.addDefault(defaults, Messages.RegionNamesOnlyLettersAndNumbers, "Region names may not include symbols or punctuation.", null);
         this.addDefault(defaults, Messages.RegionNameConflict, "There's already a region by that name.", null);
         this.addDefault(defaults, Messages.NoMoreRegions, "Sorry, you're in the only region.  Over time, more regions will open.", null);
         this.addDefault(defaults, Messages.InviteConfirmation, "Invitation sent!  {0} can use /visit {1} to teleport to your home post.", "0: invitee's name, 1: inviter's name");
