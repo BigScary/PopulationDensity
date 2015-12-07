@@ -92,7 +92,7 @@ public class EntityEventHandler implements Listener
 		if(region == null) return;
 		
 		//otherwise if it's close to a region post
-		Location regionCenter = PopulationDensity.getRegionCenter(region);
+		Location regionCenter = PopulationDensity.getRegionCenter(region, false);
 		regionCenter.setY(PopulationDensity.ManagedWorld.getHighestBlockYAt(regionCenter));		
 		if(regionCenter.distanceSquared(location) < 225)  //225 = 15 * 15
 		{			

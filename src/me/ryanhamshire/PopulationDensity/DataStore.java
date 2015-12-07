@@ -446,7 +446,7 @@ public class DataStore
 		if(!PopulationDensity.instance.buildRegionPosts) return;
 		
 		//find the center
-		Location regionCenter = PopulationDensity.getRegionCenter(region);		
+		Location regionCenter = PopulationDensity.getRegionCenter(region, false);		
 		int x = regionCenter.getBlockX();
 		int z = regionCenter.getBlockZ();
 		int y;

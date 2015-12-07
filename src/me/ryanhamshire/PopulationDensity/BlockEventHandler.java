@@ -25,12 +25,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -84,6 +86,40 @@ public class BlockEventHandler implements Listener
 			breakEvent.setCancelled(true);
 			return;
 		}
+	}
+	
+	private Location lastLocation = null;
+	private Boolean lastResult = null;
+	@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+	public void onBlockFromTo(BlockFromToEvent event)
+	{
+	    if(event.getFace() == BlockFace.DOWN) return;
+	    
+	    Location from = event.getBlock().getLocation();
+	    if(lastLocation != null && from.equals(lastLocation))
+	    {
+	        event.setCancelled(lastResult);
+	        return;
+	    }
+	    
+	    //if not in managed world, do nothing
+        if(!from.getWorld().equals(PopulationDensity.ManagedWorld)) return;
+        
+        //region posts are at sea level at the lowest, so no need to check build permissions under that
+        if(from.getY() < PopulationDensity.instance.minimumRegionPostY) return;
+        
+        RegionCoordinates blockRegion = RegionCoordinates.fromLocation(from);
+        if(this.nearRegionPost(from, blockRegion, PopulationDensity.instance.postProtectionRadius + 1))
+        {
+            event.setCancelled(true);
+            lastResult = true;
+        }
+        else
+        {
+            lastResult = false;
+        }
+        
+        lastLocation = from;
 	}
 	
 	//COPY PASTE!  this is practically the same as the above block break handler
@@ -195,7 +231,7 @@ public class BlockEventHandler implements Listener
 	//determines whether or not you're "near" a region post
 	private boolean nearRegionPost(Location location, RegionCoordinates region, int howClose)
 	{
-		Location postLocation = PopulationDensity.getRegionCenter(region);
+		Location postLocation = PopulationDensity.getRegionCenter(region, false);
 		
 		//NOTE!  Why not use distance?  Because I want a box to the sky, not a sphere.
 		//Why not round?  Below calculation is cheaper than distance (needed for a cylinder or sphere).

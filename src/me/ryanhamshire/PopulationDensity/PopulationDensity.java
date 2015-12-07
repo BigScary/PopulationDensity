@@ -998,7 +998,7 @@ public class PopulationDensity extends JavaPlugin
 			
 			//if close to home post, go for it
 			PlayerData playerData = this.dataStore.getPlayerData(player);
-			Location homeCenter = getRegionCenter(playerData.homeRegion);
+			Location homeCenter = getRegionCenter(playerData.homeRegion, true);
 			if(homeCenter.distanceSquared(player.getLocation()) < 100) return true;
 			
 			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoTeleportHere);
@@ -1011,7 +1011,7 @@ public class PopulationDensity extends JavaPlugin
 		    if(nearCityPost(player)) return true;
 		    
 		    RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
-			Location currentCenter = getRegionCenter(currentRegion);
+			Location currentCenter = getRegionCenter(currentRegion, true);
 			if(currentCenter.distanceSquared(player.getLocation()) < 100) return true;
 			
 			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NotCloseToPost);
@@ -1035,7 +1035,7 @@ public class PopulationDensity extends JavaPlugin
 	public void TeleportPlayer(Player player, RegionCoordinates region, boolean silent)
 	{
 		//where specifically to send the player?
-		Location teleportDestination = getRegionCenter(region);
+		Location teleportDestination = getRegionCenter(region, false);
 		int x = teleportDestination.getBlockX();
 		int z = teleportDestination.getBlockZ();
 		
@@ -1064,7 +1064,7 @@ public class PopulationDensity extends JavaPlugin
 	{						
 		AddLogEntry("Examining available resources in region \"" + region.toString() + "\"...");						
 		
-		Location regionCenter = getRegionCenter(region);
+		Location regionCenter = getRegionCenter(region, false);
 		int min_x = regionCenter.getBlockX() - REGION_SIZE / 2;
 		int max_x = regionCenter.getBlockX() + REGION_SIZE / 2;			
 		int min_z = regionCenter.getBlockZ() - REGION_SIZE / 2;
@@ -1166,7 +1166,7 @@ public class PopulationDensity extends JavaPlugin
 	
 	//determines the center of a region (as a Location) given its region coordinates
 	//keeping all regions the same size and aligning them in a grid keeps this calculation simple and fast
-	public static Location getRegionCenter(RegionCoordinates region)
+	public static Location getRegionCenter(RegionCoordinates region, boolean computeY)
 	{
 		int x, z;
 		if(region.x >= 0)
@@ -1179,10 +1179,10 @@ public class PopulationDensity extends JavaPlugin
 		else
 			z = region.z * REGION_SIZE + REGION_SIZE / 2;
 		
-		Location center = new Location(ManagedWorld, x, 1, z);
+		Location center = new Location(ManagedWorld, x, PopulationDensity.instance.minimumRegionPostY, z);
 				
 		//PopulationDensity.GuaranteeChunkLoaded(ManagedWorld.getChunkAt(center).getX(), ManagedWorld.getChunkAt(center).getZ());		
-		center = ManagedWorld.getHighestBlockAt(center).getLocation();
+		if(computeY) center = ManagedWorld.getHighestBlockAt(center).getLocation();
 		
 		return center;
 	}

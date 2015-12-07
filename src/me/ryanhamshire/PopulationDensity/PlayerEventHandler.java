@@ -229,7 +229,7 @@ public class PlayerEventHandler implements Listener {
     			// entirely new players who've not visited the server before will
     			// spawn in their home region by default.
     			// if configured as such, teleport him there in a couple of seconds
-    			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion);
+    			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion, false);
     			try
     			{
     			    PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
@@ -348,8 +348,7 @@ public class PlayerEventHandler implements Listener {
 		// this keeps players near where they live, even when they die (haha)
 		if (!respawnEvent.isBedSpawn()) {
 			// find the center of his home region
-			Location homeRegionCenter = PopulationDensity
-					.getRegionCenter(playerData.homeRegion);
+			Location homeRegionCenter = PopulationDensity.getRegionCenter(playerData.homeRegion, false);
 
 			// aim for two blocks above the highest block and teleport
 			homeRegionCenter.setY(PopulationDensity.ManagedWorld
