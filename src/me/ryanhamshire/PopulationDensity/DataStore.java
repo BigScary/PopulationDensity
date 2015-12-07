@@ -59,11 +59,13 @@ public class DataStore
 	private ConcurrentHashMap<RegionCoordinates, String> coordsToNameMap = new ConcurrentHashMap<RegionCoordinates, String>();
 	
 	//initialization!
-	public DataStore()
+	public DataStore(List<String> regionNames)
 	{
 		//ensure data folders exist
 		new File(playerDataFolderPath).mkdirs();
 		new File(regionDataFolderPath).mkdirs();
+		
+		this.regionNamesList = regionNames.toArray(new String[]{});
 		
 		this.loadMessages();
 		
@@ -352,7 +354,7 @@ public class DataStore
 			
 		}while(this.getRegionCoordinates(newRegionName) != null);
 		
-		this.nameRegion(this.nextRegionCoordinates, newRegionName);		
+	    this.privateNameRegion(this.nextRegionCoordinates, newRegionName);
 		
 		//find the next region in the spiral (updates this.openRegionCoordinates and this.nextRegionCoordinates)
 		this.findNextRegion();
@@ -360,48 +362,62 @@ public class DataStore
 		return this.openRegionCoordinates;
 	}
 	
-	void nameRegion(RegionCoordinates coords, String name) 
+	//names a region, never throws an exception for name content
+	private void privateNameRegion(RegionCoordinates coords, String name)
 	{
-		//delete any existing data for the region at these coordinates
-		String oldRegionName = this.getRegionName(coords);
-		if(oldRegionName != null)
-		{
-			File oldRegionCoordinatesFile = new File(regionDataFolderPath + File.separator + coords.toString());
-			oldRegionCoordinatesFile.delete();
-			
-			File oldRegionNameFile = new File(regionDataFolderPath + File.separator + oldRegionName);
-			oldRegionNameFile.delete();
-			this.coordsToNameMap.remove(coords);
-			this.nameToCoordsMap.remove(oldRegionName.toLowerCase());
-		}
+	    //delete any existing data for the region at these coordinates
+        String oldRegionName = this.getRegionName(coords);
+        if(oldRegionName != null)
+        {
+            File oldRegionCoordinatesFile = new File(regionDataFolderPath + File.separator + coords.toString());
+            oldRegionCoordinatesFile.delete();
+            
+            File oldRegionNameFile = new File(regionDataFolderPath + File.separator + oldRegionName);
+            oldRegionNameFile.delete();
+            this.coordsToNameMap.remove(coords);
+            this.nameToCoordsMap.remove(oldRegionName.toLowerCase());
+        }
 
-		//"create" the region by saving necessary data to disk
-		BufferedWriter outStream = null;
-		try
-		{
-			//coordinates file contains the region's name
+        //"create" the region by saving necessary data to disk
+        BufferedWriter outStream = null;
+        try
+        {
+            //coordinates file contains the region's name
             File regionCoordinatesFile = new File(regionDataFolderPath + File.separator + coords.toString());
             regionCoordinatesFile.createNewFile();
             outStream = new BufferedWriter(new FileWriter(regionCoordinatesFile));
             outStream.write(name);
             outStream.close();
-			
-			//cache in memory
-			this.coordsToNameMap.put(coords, name);
-			this.nameToCoordsMap.put(name.toLowerCase(), coords);
-		}
-		
-		//in case of any problem, log the details
-		catch(Exception e)
-		{
-			PopulationDensity.AddLogEntry("Unexpected Exception: " + e.getMessage());
-		}
-		
-		try
-		{
-			if(outStream != null) outStream.close();		
-		}
-		catch(IOException exception){}
+            
+            //cache in memory
+            this.coordsToNameMap.put(coords, name);
+            this.nameToCoordsMap.put(name.toLowerCase(), coords);
+        }
+        
+        //in case of any problem, log the details
+        catch(Exception e)
+        {
+            PopulationDensity.AddLogEntry("Unexpected Exception: " + e.getMessage());
+        }
+        
+        try
+        {
+            if(outStream != null) outStream.close();        
+        }
+        catch(IOException exception){}
+    }
+
+    //names or renames a specified region
+	public void nameRegion(RegionCoordinates coords, String name) throws RegionNameException
+	{
+		//validate name
+	    String error = PopulationDensity.instance.getRegionNameError(name);
+	    if(error != null)
+	    {
+	        throw new RegionNameException(error);
+	    }
+	    
+	    this.privateNameRegion(coords, name);
 	}
 
 	//retrieves the open region's coordinates
@@ -915,90 +931,7 @@ public class DataStore
     }
 	
 	//list of region names to use
-	private final String [] regionNamesList = new String [] 
-	{
-		"redstone",
-		"morningthaw",
-		"mountain",
-		"valley",
-		"wintersebb",
-		"fjord",
-		"ledge",
-		"ravine",
-		"darktide",
-		"stream",
-		"glenwood",
-		"waterfall",
-		"cragstone",
-		"pickaxe",
-		"axe",
-		"hammer",
-		"anvil",
-		"field",
-		"sunrise",
-		"sunset",
-		"copper",
-		"coal",
-		"shovel",
-		"minecart",
-		"railway",
-		"tunnel",
-		"chasm",
-		"cavern",
-		"ocean",
-		"boat",
-		"grass",
-		"gust",
-		"beach",
-		"desert",
-		"stone",
-		"peak",
-		"ore",
-		"boulder",
-		"hilltop",
-		"horizon",
-		"swamp",
-		"molten",
-		"canyon",
-		"gravel",
-		"sword",
-		"obsidian",
-		"treetop",
-		"storm",
-		"gold",
-		"canopy",
-		"forest",
-		"summit",
-		"glade",
-		"trail",
-		"seed",
-		"diamond",
-		"armor",
-		"sand",
-		"flint",
-		"field",
-		"steel",
-		"helm",
-		"gorge",
-		"campfire",
-		"workshop",
-		"rubble",
-		"iron",
-		"torch",
-		"moon",
-		"shrub",
-		"trunk",
-		"garden",
-		"vale",
-		"pumpkin",
-		"lantern",
-		"charcoal",
-		"marsh",
-		"tundra",
-		"taiga",
-		"dust",
-		"lava"
-	};
+	private String [] regionNamesList;
 
     String getRegionNames()
     {

@@ -18,16 +18,12 @@
 
 package me.ryanhamshire.PopulationDensity;
 
-public class CustomizableMessage 
+public class RegionNameException extends Exception
 {
-	public Messages id;
-	public String text;
-	public String notes;
-	
-	public CustomizableMessage(Messages id, String text, String notes)
-	{
-		this.id = id;
-		this.text = text;
-		this.notes = notes;
-	}
+    private static final long serialVersionUID = 1L;
+    
+    public RegionNameException(String error)
+    {
+        super(error);
+    }
 }

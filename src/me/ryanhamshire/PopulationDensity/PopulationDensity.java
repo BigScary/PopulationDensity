@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -118,6 +119,8 @@ public class PopulationDensity extends JavaPlugin
 	public String [] westCustomSignContent;
 
     public int postProtectionRadius;
+    
+    List<String> config_regionNames;
 
 	public synchronized static void AddLogEntry(String entry)
 	{
@@ -218,6 +221,108 @@ public class PopulationDensity extends JavaPlugin
             this.innerPlatformData = result.getValue();
         }
 		
+		List <String> defaultRegionNames = Arrays.asList(
+            "redstone",
+            "dew",
+            "creeper",
+            "sword",
+            "wintersebb",
+            "fjord",
+            "vista",
+            "breeze",
+            "tide",
+            "stream",
+            "glenwood",
+            "journey",
+            "cragstone",
+            "pickaxe",
+            "axe",
+            "hammer",
+            "anvil",
+            "mist",
+            "sunrise",
+            "sunset",
+            "copper",
+            "coal",
+            "shovel",
+            "minecart",
+            "railway",
+            "dig",
+            "chasm",
+            "basalt",
+            "agate",
+            "boat",
+            "grass",
+            "gust",
+            "ruby",
+            "emerald",
+            "stone",
+            "peak",
+            "ore",
+            "boulder",
+            "hilltop",
+            "horizon",
+            "fog",
+            "cloud",
+            "canopy",
+            "gravel",
+            "torch",
+            "obsidian",
+            "treetop",
+            "storm",
+            "gold",
+            "canopy",
+            "leaf",
+            "summit",
+            "glade",
+            "trail",
+            "seed",
+            "diamond",
+            "armor",
+            "sand",
+            "flint",
+            "field",
+            "steel",
+            "helm",
+            "gorge",
+            "campfire",
+            "workshop",
+            "rubble",
+            "iron",
+            "chisel",
+            "moon",
+            "shrub",
+            "zombie",
+            "stem",
+            "vale",
+            "pumpkin",
+            "lantern",
+            "copper",
+            "moonBeam",
+            "soil",
+            "dust"
+        );
+		
+		this.config_regionNames = new ArrayList<String>();
+		List<String> regionNames = config.getStringList("PopulationDensity.Region Name List");
+		if(regionNames == null || regionNames.size() == 0)
+		{
+		    regionNames = defaultRegionNames;
+		}
+		
+		for(String regionName : regionNames)
+		{
+		    String error = getRegionNameError(regionName);
+		    if(error != null)
+		    {
+		        AddLogEntry("Unable to use region name + '" + regionName + "':" + error);
+		    }
+		    else
+		    {
+		        this.config_regionNames.add(regionName);
+		    }
+		}
+		
 		//and write those values back and save. this ensures the config file is available on disk for editing
 		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
 		config.set("PopulationDensity.RespawnInHomeRegion", this.respawnInHomeRegion);
@@ -251,6 +356,7 @@ public class PopulationDensity extends JavaPlugin
         config.set("PopulationDensity.PostDesign.PostBlocks", post);
         config.set("PopulationDensity.PostDesign.PlatformOuterRing", outerPlat);
         config.set("PopulationDensity.PostDesign.PlatformInnerRing", innerPlat);
+        config.set("PopulationDensity.Region Name List", regionNames);
 		
 		//this is a combination load/preprocess/save for custom signs on the region posts
 		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
@@ -282,7 +388,7 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		//when datastore initializes, it loads player and region data, and posts some stats to the log
-		this.dataStore = new DataStore();
+		this.dataStore = new DataStore(this.config_regionNames);
 		
 		//register for events
 		PluginManager pluginManager = this.getServer().getPluginManager();
@@ -319,7 +425,31 @@ public class PopulationDensity extends JavaPlugin
 		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new MonitorPerformanceTask(), 1200L, 1200L);
 	}
 	
-	public String [] initializeSignContentConfig(FileConfiguration config, String configurationNode, String [] defaultLines)
+	String getRegionNameError(String name)
+	{
+	    if(name.length() > this.maxRegionNameLength)
+        {
+            return this.dataStore.getMessage(Messages.RegionNameLength, String.valueOf(maxRegionNameLength));
+        }
+        
+        for(int i = 0; i < name.length(); i++)
+        {
+            char c = name.charAt(i);
+            if(Character.isWhitespace(c))
+            {
+                return this.dataStore.getMessage(Messages.RegionNamesNoSpaces);
+            }
+            
+            if(!Character.isLetter(c))
+            {
+                return this.dataStore.getMessage(Messages.RegionNamesOnlyLetters);
+            }                   
+        }
+        
+        return null;
+    }
+
+    public String [] initializeSignContentConfig(FileConfiguration config, String configurationNode, String [] defaultLines)
 	{
 		//read what's in the file
 		List<String> linesFromConfig = config.getStringList(configurationNode);
@@ -492,30 +622,7 @@ public class PopulationDensity extends JavaPlugin
 			
 			//validate argument
 			if(args.length < 1) return false;
-			
 			String name = args[0];
-			
-			if(name.length() > this.maxRegionNameLength)
-			{
-				PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNameLength, maxRegionNameLength);
-				return true;
-			}
-			
-			for(int i = 0; i < name.length(); i++)
-			{
-				char c = name.charAt(i);
-				if(Character.isWhitespace(c))
-				{
-				    PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNamesNoSpaces);
-					return true;
-				}
-				
-				if(!Character.isLetter(c))
-				{
-				    PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNamesOnlyLetters);
-					return true;
-				}					
-			}
 			
 			if(this.dataStore.getRegionCoordinates(name) != null)
 			{
@@ -524,7 +631,15 @@ public class PopulationDensity extends JavaPlugin
 			}
 			
 			//name region
-			this.dataStore.nameRegion(currentRegion, name);
+			try
+			{
+			    this.dataStore.nameRegion(currentRegion, name);
+			}
+			catch(RegionNameException e)
+			{
+			    PopulationDensity.sendMessage(player, TextMode.Err, e.getMessage());
+			    return true;
+			}
 			
 			//update post
 			try
