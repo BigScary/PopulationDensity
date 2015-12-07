@@ -411,7 +411,7 @@ public class DataStore
 	public void nameRegion(RegionCoordinates coords, String name) throws RegionNameException
 	{
 		//validate name
-	    String error = PopulationDensity.instance.getRegionNameError(name);
+	    String error = PopulationDensity.instance.getRegionNameError(name, false);
 	    if(error != null)
 	    {
 	        throw new RegionNameException(error);
@@ -938,7 +938,7 @@ public class DataStore
         StringBuilder builder = new StringBuilder();
         for(String regionName : this.nameToCoordsMap.keySet())
         {
-            builder.append(regionName).append(' ');
+            builder.append(PopulationDensity.capitalize(regionName)).append(", ");
         }
         
         return builder.toString();

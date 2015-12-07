@@ -312,7 +312,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		for(String regionName : regionNames)
 		{
-		    String error = getRegionNameError(regionName);
+		    String error = getRegionNameError(regionName, true);
 		    if(error != null)
 		    {
 		        AddLogEntry("Unable to use region name + '" + regionName + "':" + error);
@@ -424,25 +424,26 @@ public class PopulationDensity extends JavaPlugin
 		//start monitoring performance
 		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new MonitorPerformanceTask(), 1200L, 1200L);
 	}
-	
-	String getRegionNameError(String name)
+
+	String getRegionNameError(String name, boolean console)
 	{
 	    if(name.length() > this.maxRegionNameLength)
         {
-            return this.dataStore.getMessage(Messages.RegionNameLength, String.valueOf(maxRegionNameLength));
+            if(console)
+                return "Name too long.";
+            else
+                return this.dataStore.getMessage(Messages.RegionNameLength, String.valueOf(maxRegionNameLength));
         }
         
         for(int i = 0; i < name.length(); i++)
         {
             char c = name.charAt(i);
-            if(Character.isWhitespace(c))
+            if(!Character.isLetter(c) && !Character.isDigit(c) && c != ' ')
             {
-                return this.dataStore.getMessage(Messages.RegionNamesNoSpaces);
-            }
-            
-            if(!Character.isLetter(c) && !Character.isDigit(c))
-            {
-                return this.dataStore.getMessage(Messages.RegionNamesOnlyLettersAndNumbers);
+                if(console)
+                    return "Name includes symbols or puncutation.";
+                else
+                    return this.dataStore.getMessage(Messages.RegionNamesOnlyLettersAndNumbers);
             }                   
         }
         
@@ -548,10 +549,11 @@ public class PopulationDensity extends JavaPlugin
 			else
 			{
 			    //find the specified region, and send an error message if it's not found
-    			RegionCoordinates region = this.dataStore.getRegionCoordinates(args[0]);									
+			    String name = PopulationDensity.join(args);
+			    RegionCoordinates region = this.dataStore.getRegionCoordinates(name);									
     			if(region == null)
     			{
-    				PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, args[0]);
+    				PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, name);
     				return true;
     			}
     			
@@ -622,7 +624,7 @@ public class PopulationDensity extends JavaPlugin
 			
 			//validate argument
 			if(args.length < 1) return false;
-			String name = args[0];
+			String name = PopulationDensity.join(args);
 			
 			if(this.dataStore.getRegionCoordinates(name) != null)
 			{
@@ -753,10 +755,11 @@ public class PopulationDensity extends JavaPlugin
                 RegionCoordinates destination = playerData.homeRegion;
                 if(args.length > 1)
                 {
-                    destination = this.dataStore.getRegionCoordinates(args[1]);                                  
+                    String name = PopulationDensity.join(args, 1);
+                    destination = this.dataStore.getRegionCoordinates(name);                                  
                     if(destination == null)
                     {
-                        PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, args[1]);
+                        PopulationDensity.sendMessage(player, TextMode.Err, Messages.DestinationNotFound, name);
                         return true;
                     }
                 }
@@ -931,7 +934,23 @@ public class PopulationDensity extends JavaPlugin
 		return false;
 	}
 	
-	private boolean handleHomeCommand(Player player, PlayerData playerData)
+	private static String join(String[] args, int offset)
+    {
+        StringBuilder builder = new StringBuilder();
+        for(int i = offset; i < args.length; i++)
+        {
+            builder.append(args[i]).append(" ");
+        }
+        
+        return builder.toString().trim();
+    }
+	
+	private static String join(String[] args)
+	{
+        return join(args, 0);
+    }
+
+    private boolean handleHomeCommand(Player player, PlayerData playerData)
 	{
 	    //consider config, player location, player permissions
         if(this.playerCanTeleport(player, true))
