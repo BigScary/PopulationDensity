@@ -24,16 +24,22 @@ import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang.Validate;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 
-public class DataStore 
+public class DataStore implements TabCompleter
 {
 	//in-memory cache for player home region, because it's needed very frequently
 	private HashMap<String, PlayerData> playerNameToPlayerDataMap = new HashMap<String, PlayerData>();
@@ -942,5 +948,48 @@ public class DataStore
         }
         
         return builder.toString();
+    }
+    
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) throws IllegalArgumentException
+    {
+        Validate.notNull(sender, "Sender cannot be null");
+        Validate.notNull(args, "Arguments cannot be null");
+        Validate.notNull(alias, "Alias cannot be null");
+        if (args.length == 0)
+        {
+                return ImmutableList.of();
+        }
+        
+        StringBuilder builder = new StringBuilder();
+        for(String arg : args)
+        {
+            builder.append(arg + " ");
+        }
+        
+        String arg = builder.toString().trim();
+        ArrayList<String> matches = new ArrayList<String>();
+        for (String name : this.coordsToNameMap.values())
+        {
+            if (StringUtil.startsWithIgnoreCase(name, arg))
+            {
+                matches.add(name);
+            }
+        }
+        
+        Player senderPlayer = sender instanceof Player ? (Player) sender : null;
+        for(Player player : sender.getServer().getOnlinePlayers())
+        {
+            if(senderPlayer == null || senderPlayer.canSee(player))
+            {
+                if(StringUtil.startsWithIgnoreCase(player.getName(), arg))
+                {
+                    matches.add(player.getName());
+                }
+            }
+        }
+        
+        Collections.sort(matches, String.CASE_INSENSITIVE_ORDER);
+        return matches;
     }
 }

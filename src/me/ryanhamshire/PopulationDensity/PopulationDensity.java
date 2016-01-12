@@ -106,6 +106,7 @@ public class PopulationDensity extends JavaPlugin
     public Integer innerPlatformData = 0;
     public int nearbyMonsterSpawnLimit;
     public int maxRegionNameLength = 10;
+    public boolean abandonedFarmAnimalsDie;
     
     public boolean config_bootIdlePlayersWhenLagging;
     public boolean config_disableGrindersWhenLagging;
@@ -194,6 +195,7 @@ public class PopulationDensity extends JavaPlugin
 		String innerPlat = config.getString("PopulationDensity.PostDesign.PlatformInnerRing", "98:0");
 		this.nearbyMonsterSpawnLimit = config.getInt("PopulationDensity.Max Monsters In Chunk To Spawn More", 2);
 		this.nearbyMonsterSpawnLimit = config.getInt("PopulationDensity.Max Monsters Nearby For More To Spawn", nearbyMonsterSpawnLimit);
+		this.abandonedFarmAnimalsDie = config.getBoolean("PopulationDensity.Abandoned Farm Animals Die", true);
 		
 		SimpleEntry<Integer, Integer> result;
 		result = this.processMaterials(topper);
@@ -344,6 +346,7 @@ public class PopulationDensity extends JavaPlugin
 		config.set("PopulationDensity.TreesRegrow", this.regrowTrees);
         config.set("PopulationDensity.Max Monsters Nearby For More To Spawn", this.nearbyMonsterSpawnLimit);
 		config.set("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", this.thinAnimalAndMonsterCrowds);
+		config.set("PopulationDensity.Abandoned Farm Animals Die", this.abandonedFarmAnimalsDie);
         config.set("PopulationDensity.Disable Monster Grinders When Lagging", this.config_disableGrindersWhenLagging);
         config.set("PopulationDensity.Boot Idle Players When Lagging", this.config_bootIdlePlayersWhenLagging);
 		config.set("PopulationDensity.MinimumRegionPostY", this.minimumRegionPostY);
@@ -393,6 +396,10 @@ public class PopulationDensity extends JavaPlugin
 		//register for events
 		PluginManager pluginManager = this.getServer().getPluginManager();
 		
+		//set up region name tab completers
+		PluginCommand visitCommand = this.getCommand("visit");
+		visitCommand.setTabCompleter(this.dataStore);
+		
 		//player events, to control spawn, respawn, disconnect, and region-based notifications as players walk around
 		PlayerEventHandler playerEventHandler = new PlayerEventHandler(this.dataStore, this);
 		pluginManager.registerEvents(playerEventHandler, this);
@@ -423,6 +430,25 @@ public class PopulationDensity extends JavaPlugin
 		
 		//start monitoring performance
 		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new MonitorPerformanceTask(), 1200L, 1200L);
+		
+		//animals which appear abandoned on chunk load get the grandfather clause treatment
+        if(PopulationDensity.instance.abandonedFarmAnimalsDie)
+        {
+            for(World world : this.getServer().getWorlds())
+            {
+                for(Chunk chunk : world.getLoadedChunks())
+                {
+                    Entity [] entities = chunk.getEntities();
+                    for(Entity entity : entities)
+                    {
+                        if(WorldEventHandler.isAbandonedFarmAnimal(entity))
+                        {
+                            entity.setTicksLived(1);
+                        }
+                    }
+                }
+            }
+        }
 	}
 
 	String getRegionNameError(String name, boolean console)
@@ -1249,7 +1275,7 @@ public class PopulationDensity extends JavaPlugin
                 Chunk chunk = world.getChunkAt(x, z);
                 for(Entity entity : chunk.getEntities())
                 {
-                    if(entity instanceof Monster && entity.getCustomName() == null && ((Monster) entity).getRemoveWhenFarAway())
+                    if(entity instanceof Monster && entity.getCustomName() == null && ((Monster) entity).getRemoveWhenFarAway() && !((Monster) entity).isLeashed())
                     {
                         entity.remove();
                     }

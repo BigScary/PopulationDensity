@@ -192,7 +192,7 @@ public class MonitorPerformanceTask implements Runnable
                     }
                     else if(isAnimal)
                     {
-                        if(count > 20 || (count > 5 && !removedAnimalThisPass))
+                        if(count > 20 || (count > 5 && !removedAnimalThisPass) || entity.getLocation().getBlock().getLightFromBlocks() < 4)
                         {
                             ((Animals) entity).setHealth(0);
                             removedAnimalThisPass = true;

@@ -23,6 +23,8 @@ import java.util.Calendar;
 import java.util.Collection;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Animals;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -374,4 +376,14 @@ public class PlayerEventHandler implements Listener {
             player.performCommand("lag");
         }
     }
+	
+	@EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+	public void onPlayerInteractEntity(PlayerInteractEntityEvent event)
+	{
+	    Entity entity = event.getRightClicked();
+        if(PopulationDensity.instance.abandonedFarmAnimalsDie && entity instanceof Animals)
+	    {
+	        entity.setTicksLived(1);
+	    }
+	}
 }

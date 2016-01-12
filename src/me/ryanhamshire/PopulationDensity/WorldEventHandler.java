@@ -18,8 +18,14 @@
 
 package me.ryanhamshire.PopulationDensity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.entity.Animals;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Tameable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -33,7 +39,20 @@ public class WorldEventHandler implements Listener
 	{		
 		Chunk chunk = chunkLoadEvent.getChunk();
 		
-		//nothing to do in worlds other than the managed world
+		//animals which appear abandoned on chunk load get the grandfather clause treatment
+		if(PopulationDensity.instance.abandonedFarmAnimalsDie)
+		{
+		    Entity [] entities = chunk.getEntities();
+		    for(Entity entity : entities)
+		    {
+		        if(isAbandonedFarmAnimal(entity))
+		        {
+		            entity.setTicksLived(1);
+		        }
+		    }
+		}
+		
+		//nothing more to do in worlds other than the managed world
 		if(chunk.getWorld() != PopulationDensity.ManagedWorld) return;
 		
 		//find the boundaries of the chunk
@@ -57,13 +76,66 @@ public class WorldEventHandler implements Listener
 		}
 	}
 	
-	//don't allow the new player spawn point chunk to unload
+	static boolean isAbandonedFarmAnimal(Entity entity)
+	{
+	    String customName = entity.getCustomName();
+	    if(customName != null && !customName.isEmpty()) return false;
+        if(!(entity instanceof Animals) || (entity instanceof Tameable)) return false;
+        
+        //if in the dark, treat as wilderness animal
+        byte lightLevel = entity.getLocation().getBlock().getLightFromBlocks();
+        if(lightLevel < 4 && entity.getTicksLived() > 1728000)  //in the dark and 1 day in ticks without player interaction
+        {
+            return true;
+        }
+        else if(entity.getTicksLived() > 5184000) //in the light and 3 days in ticks without player interaction 
+        {
+            //only remove if there are at least two similar animals nearby, to allow for rebreeding later
+            List<Entity> nearbyEntities = entity.getNearbyEntities(15, 15, 15);
+            int nearbySimilar = 0;
+            for(Entity nearby : nearbyEntities)
+            {
+                if(nearby.getType() == entity.getType())
+                {
+                    nearbySimilar++;
+                    if(nearbySimilar > 1)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    //don't allow the new player spawn point chunk to unload
     @EventHandler(ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent event)
     {       
         Chunk chunk = event.getChunk();
         
-        //nothing to do in worlds other than the managed world
+        //expire any abandoned animals
+        if(PopulationDensity.instance.abandonedFarmAnimalsDie)
+        {
+            Entity [] entities = chunk.getEntities();
+            ArrayList<Entity> toRemove = new ArrayList<Entity>();
+            for(Entity entity : entities)
+            {
+                if(isAbandonedFarmAnimal(entity))
+                {
+                    PopulationDensity.AddLogEntry("Removed abandoned " + entity.getType().name() + " @ " + entity.getLocation().toString());
+                    toRemove.add(entity);
+                }
+            }
+            
+            for(Entity entity : toRemove)
+            {
+                entity.remove();
+            }
+        }
+        
+        //nothing more to do in worlds other than the managed world
         if(chunk.getWorld() != PopulationDensity.ManagedWorld) return;
         
         //find the boundaries of the chunk
