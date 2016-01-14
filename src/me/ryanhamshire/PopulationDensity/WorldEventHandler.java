@@ -124,7 +124,6 @@ public class WorldEventHandler implements Listener
             {
                 if(isAbandonedFarmAnimal(entity))
                 {
-                    PopulationDensity.AddLogEntry("Removed abandoned " + entity.getType().name() + " @ " + entity.getLocation().toString());
                     toRemove.add(entity);
                 }
             }
