@@ -17,13 +17,13 @@ public class ScanResultsTask implements Runnable
 	@Override
 	public void run() 
 	{
-		//collect garbage
-		System.gc();
-		
-		for(int i = 0; i < logEntries.size(); i++)
+		StringBuilder builder = new StringBuilder();
+	    for(String entry : this.logEntries)
 		{
-			PopulationDensity.AddLogEntry(logEntries.get(i));
+			builder.append(entry).append("\n");
 		}
+	    
+	    PopulationDensity.AddLogEntry(builder.toString());
 		
 		if(this.openNewRegion)
 		{
