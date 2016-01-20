@@ -373,7 +373,7 @@ public class PlayerEventHandler implements Listener {
             event.getRecipients().clear();
             event.getRecipients().add(player);
             
-            player.performCommand("lag");
+            PopulationDensity.instance.reportTPS(player);
         }
     }
 	

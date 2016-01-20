@@ -935,24 +935,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("lag"))
         {
-            String message = PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore, String.valueOf(Math.round((serverTicksPerSecond / 20) * 100)));
-		    if(serverTicksPerSecond > 19)
-            {
-                message = PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore_NoLag) + message;
-            }
-		    else
-		    {
-		        message += PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore_Lag);
-		    }
-            
-            if(player != null)
-            {
-                player.sendMessage(ChatColor.GOLD + message);
-            }
-            else
-            {
-                AddLogEntry(message);
-            }
+            this.reportTPS(player);
 		    
 		    return true;
         }
@@ -960,7 +943,29 @@ public class PopulationDensity extends JavaPlugin
 		return false;
 	}
 	
-	private static String join(String[] args, int offset)
+	void reportTPS(Player player)
+	{
+	    String message = PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore, String.valueOf(Math.round((serverTicksPerSecond / 20) * 100)));
+        if(serverTicksPerSecond > 19)
+        {
+            message = PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore_NoLag) + message;
+        }
+        else
+        {
+            message += PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore_Lag);
+        }
+        
+        if(player != null)
+        {
+            player.sendMessage(ChatColor.GOLD + message);
+        }
+        else
+        {
+            AddLogEntry(message);
+        }
+    }
+
+    private static String join(String[] args, int offset)
     {
         StringBuilder builder = new StringBuilder();
         for(int i = offset; i < args.length; i++)
