@@ -343,12 +343,14 @@ public class PlayerEventHandler implements Listener {
 		}
 		
 		Player player = respawnEvent.getPlayer();
-		PlayerData playerData = this.dataStore.getPlayerData(player);
-
+		
 		// if it's NOT a bed respawn, redirect it to the player's home region
 		// post
 		// this keeps players near where they live, even when they die (haha)
-		if (!respawnEvent.isBedSpawn()) {
+		if (!respawnEvent.isBedSpawn())
+		{
+		    PlayerData playerData = this.dataStore.getPlayerData(player);
+
 			// find the center of his home region
 			Location homeRegionCenter = PopulationDensity.getRegionCenter(playerData.homeRegion, false);
 
