@@ -1,7 +1,7 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
 softdepend: [Multiverse-Core, My Worlds, Transporter, MystCraft]
-version: 5.4.1
+version: 5.5
 commands:
    visit:
       description: Teleports the player to a specified region.
@@ -18,7 +18,11 @@ commands:
    nameregion:
       description: Names a wilderness region.
       usage: /nameregion <name>
-      permission: populationdensity.addregion
+      permission: populationdensity.nameregion
+   renameregion:
+      description: Renames a region.
+      usage: /renameregion <name>
+      permission: populationdensity.renameregion
    whichregion:
       description: Tells the player which region he's in.
       usage: /WhichRegion
@@ -88,6 +92,8 @@ permissions:
             populationdensity.setloginpriority: true
             populationdensity.forcethinning: true
             populationdensity.sendregion: true
+            populationdensity.nameregion: true
+            populationdensity.renameregion: true
     populationdensity.newestregion:
         description: Grants permission to use /NewestRegion.
         default: op
@@ -120,6 +126,12 @@ permissions:
         default: op
     populationdensity.sendregion:
         description: Grants a player permission to use /SendRegion.
+        default: op
+    populationdensity.nameregion:
+        description: Grants a player permission to use /NameRegion.
+        default: op
+    populationdensity.renameregion:
+        description: Grants a player permission to use /RenameRegion.
         default: op
     populationdensity.simulatelag:
         description: Grants a player permission to use /SimLag.

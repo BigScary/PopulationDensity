@@ -874,6 +874,7 @@ public class DataStore implements TabCompleter
         this.addDefault(defaults, Messages.PerformanceScore_NoLag, "The server is running at normal speed.  If you're experiencing lag, check your graphics settings and internet connection.  ", null);
         this.addDefault(defaults, Messages.PlayerMoved, "Player moved.", null);
         this.addDefault(defaults, Messages.Lag, "lag", null);
+        this.addDefault(defaults, Messages.RegionAlreadyNamed, "This region already has a name.  To REname, use /RenameRegion.", null);
         
         //load the config file
         FileConfiguration config = YamlConfiguration.loadConfiguration(new File(messagesFilePath));

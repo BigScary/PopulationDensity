@@ -18,7 +18,6 @@
 
 package me.ryanhamshire.PopulationDensity;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Chunk;
@@ -30,6 +29,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.metadata.FixedMetadataValue;
 
 public class WorldEventHandler implements Listener
 {
@@ -95,7 +95,7 @@ public class WorldEventHandler implements Listener
             int nearbySimilar = 0;
             for(Entity nearby : nearbyEntities)
             {
-                if(nearby.getType() == entity.getType())
+                if(nearby.getType() == entity.getType() && !nearby.hasMetadata("pd_removed"))
                 {
                     nearbySimilar++;
                     if(nearbySimilar > 1)
@@ -109,33 +109,18 @@ public class WorldEventHandler implements Listener
         return false;
     }
 
-    //don't allow the new player spawn point chunk to unload
     @EventHandler(ignoreCancelled = true)
     public void onChunkUnload(ChunkUnloadEvent event)
     {       
         Chunk chunk = event.getChunk();
         
         //expire any abandoned animals
-        if(PopulationDensity.instance.abandonedFarmAnimalsDie)
-        {
-            Entity [] entities = chunk.getEntities();
-            ArrayList<Entity> toRemove = new ArrayList<Entity>();
-            for(Entity entity : entities)
-            {
-                if(isAbandonedFarmAnimal(entity))
-                {
-                    toRemove.add(entity);
-                }
-            }
-            
-            for(Entity entity : toRemove)
-            {
-                entity.remove();
-            }
-        }
+        removeAbandonedFarmAnimals(chunk);
         
         //nothing more to do in worlds other than the managed world
         if(chunk.getWorld() != PopulationDensity.ManagedWorld) return;
+        
+        //don't allow the new player spawn point chunk to unload
         
         //find the boundaries of the chunk
         Location lesserCorner = chunk.getBlock(0, 0, 0).getLocation();
@@ -153,6 +138,29 @@ public class WorldEventHandler implements Listener
             {
                 //don't unload the chunk
                 event.setCancelled(true);
+            }
+        }
+    }
+
+    static void removeAbandonedFarmAnimals(Chunk chunk)
+    {
+        if(PopulationDensity.instance.abandonedFarmAnimalsDie)
+        {
+            Entity [] entities = chunk.getEntities();
+            for(int i = 0; i < entities.length; i++)
+            {
+                Entity entity = entities[i];
+                if(isAbandonedFarmAnimal(entity))
+                {
+                    if(PopulationDensity.instance.logAbandonedFarmDeaths)
+                    {
+                        PopulationDensity.AddLogEntry("Removed abandoned " + entity.getType().name().toLowerCase() + " @ " + entity.getLocation().toString());
+                    }
+                    
+                    //entity.remove() removes on next tick, so must mark removed entities with metadata so we know which were removed this tick
+                    entity.setMetadata("pd_removed", new FixedMetadataValue(PopulationDensity.instance, true));
+                    entity.remove();
+                }
             }
         }
     }   

@@ -107,6 +107,7 @@ public class PopulationDensity extends JavaPlugin
     public int nearbyMonsterSpawnLimit;
     public int maxRegionNameLength = 10;
     public boolean abandonedFarmAnimalsDie;
+    public boolean logAbandonedFarmDeaths;
     
     public boolean config_bootIdlePlayersWhenLagging;
     public boolean config_disableGrindersWhenLagging;
@@ -196,6 +197,7 @@ public class PopulationDensity extends JavaPlugin
 		this.nearbyMonsterSpawnLimit = config.getInt("PopulationDensity.Max Monsters In Chunk To Spawn More", 2);
 		this.nearbyMonsterSpawnLimit = config.getInt("PopulationDensity.Max Monsters Nearby For More To Spawn", nearbyMonsterSpawnLimit);
 		this.abandonedFarmAnimalsDie = config.getBoolean("PopulationDensity.Abandoned Farm Animals Die", true);
+		this.logAbandonedFarmDeaths = config.getBoolean("PopulationDensity.Log Abandoned Farm Animal Deaths", false);
 		
 		SimpleEntry<Integer, Integer> result;
 		result = this.processMaterials(topper);
@@ -347,7 +349,8 @@ public class PopulationDensity extends JavaPlugin
         config.set("PopulationDensity.Max Monsters Nearby For More To Spawn", this.nearbyMonsterSpawnLimit);
 		config.set("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", this.thinAnimalAndMonsterCrowds);
 		config.set("PopulationDensity.Abandoned Farm Animals Die", this.abandonedFarmAnimalsDie);
-        config.set("PopulationDensity.Disable Monster Grinders When Lagging", this.config_disableGrindersWhenLagging);
+		config.set("PopulationDensity.Log Abandoned Farm Animal Deaths", this.logAbandonedFarmDeaths);
+		config.set("PopulationDensity.Disable Monster Grinders When Lagging", this.config_disableGrindersWhenLagging);
         config.set("PopulationDensity.Boot Idle Players When Lagging", this.config_bootIdlePlayersWhenLagging);
 		config.set("PopulationDensity.MinimumRegionPostY", this.minimumRegionPostY);
 		config.set("PopulationDensity.PreciseWorldSpawn", this.preciseWorldSpawn);
@@ -641,43 +644,13 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("nameregion") && player != null)
 		{
-			RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
-			if(currentRegion == null)
-			{
-			    PopulationDensity.sendMessage(player, TextMode.Warn, Messages.NotInRegion);
-				return true;
-			}
-			
-			//validate argument
-			if(args.length < 1) return false;
-			String name = PopulationDensity.join(args);
-			
-			if(this.dataStore.getRegionCoordinates(name) != null)
-			{
-			    PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNameConflict);
-				return true;
-			}
-			
-			//name region
-			try
-			{
-			    this.dataStore.nameRegion(currentRegion, name);
-			}
-			catch(RegionNameException e)
-			{
-			    PopulationDensity.sendMessage(player, TextMode.Err, e.getMessage());
-			    return true;
-			}
-			
-			//update post
-			try
-			{
-			    this.dataStore.AddRegionPost(currentRegion);
-			}
-			catch(ChunkLoadException e) {}  //ignore.  post will be auto-rebuilt when the chunk is loaded later
-			
-			return true;
+			return this.nameRegion(player, args, false);
 		}
+		
+		else if(cmd.getName().equalsIgnoreCase("renameregion") && player != null)
+        {
+            return this.nameRegion(player, args, true);
+        }
 		
 		else if(cmd.getName().equalsIgnoreCase("addregionpost") && player != null)
 		{
@@ -943,7 +916,57 @@ public class PopulationDensity extends JavaPlugin
 		return false;
 	}
 	
-	void reportTPS(Player player)
+	private boolean nameRegion(Player player, String [] args, boolean allowRename)
+	{
+	    RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
+        if(currentRegion == null)
+        {
+            PopulationDensity.sendMessage(player, TextMode.Warn, Messages.NotInRegion);
+            return true;
+        }
+        
+        if(!allowRename)
+        {
+            String name = this.dataStore.getRegionName(currentRegion);
+            if(name != null)
+            {
+                PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionAlreadyNamed);
+                return true;
+            }
+        }
+        
+        //validate argument
+        if(args.length < 1) return false;
+        String name = PopulationDensity.join(args);
+        
+        if(this.dataStore.getRegionCoordinates(name) != null)
+        {
+            PopulationDensity.sendMessage(player, TextMode.Err, Messages.RegionNameConflict);
+            return true;
+        }
+        
+        //name region
+        try
+        {
+            this.dataStore.nameRegion(currentRegion, name);
+        }
+        catch(RegionNameException e)
+        {
+            PopulationDensity.sendMessage(player, TextMode.Err, e.getMessage());
+            return true;
+        }
+        
+        //update post
+        try
+        {
+            this.dataStore.AddRegionPost(currentRegion);
+        }
+        catch(ChunkLoadException e) {}  //ignore.  post will be auto-rebuilt when the chunk is loaded later
+        
+        return true;
+    }
+
+    void reportTPS(Player player)
 	{
 	    String message = PopulationDensity.instance.dataStore.getMessage(Messages.PerformanceScore, String.valueOf(Math.round((serverTicksPerSecond / 20) * 100)));
         if(serverTicksPerSecond > 19)
