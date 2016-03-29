@@ -1090,8 +1090,8 @@ public class PopulationDensity extends JavaPlugin
 	{
 		//where specifically to send the player?
 		Location teleportDestination = getRegionCenter(region, false);
-		int x = teleportDestination.getBlockX();
-		int z = teleportDestination.getBlockZ();
+		int x = teleportDestination.getBlockX() + 2;
+		int z = teleportDestination.getBlockZ() + 2;
 		
 		//make sure the chunk is loaded
 		try
@@ -1102,7 +1102,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		//find a safe height, on the surface		
 		Block highestBlock = ManagedWorld.getHighestBlockAt(x, z);
-		teleportDestination = new Location(ManagedWorld, x + 2.5, highestBlock.getY(), z + 2.5, 135, 5);		
+		teleportDestination = new Location(ManagedWorld, x + .5, highestBlock.getY(), z + .5, 135, 0);		
 		
 		//send him
 		new TeleportPlayerTask(player, teleportDestination).run();
