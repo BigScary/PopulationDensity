@@ -1102,7 +1102,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		//find a safe height, on the surface		
 		Block highestBlock = ManagedWorld.getHighestBlockAt(x, z);
-		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY(), z);		
+		teleportDestination = new Location(ManagedWorld, x + 2.5, highestBlock.getY(), z + 2.5, 135, 5);		
 		
 		//send him
 		new TeleportPlayerTask(player, teleportDestination).run();
