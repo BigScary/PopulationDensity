@@ -353,10 +353,11 @@ public class PlayerEventHandler implements Listener {
 
 			// find the center of his home region
 			Location homeRegionCenter = PopulationDensity.getRegionCenter(playerData.homeRegion, false);
-
-			// aim for two blocks above the highest block and teleport
+			
+			homeRegionCenter.add(2.5, 0, 2.5);
+			homeRegionCenter.setYaw(135);
 			homeRegionCenter.setY(PopulationDensity.ManagedWorld
-					.getHighestBlockYAt(homeRegionCenter) + 2);
+					.getHighestBlockYAt(homeRegionCenter));
 			respawnEvent.setRespawnLocation(homeRegionCenter);
 			
 			PopulationDensity.removeMonstersAround(homeRegionCenter);
