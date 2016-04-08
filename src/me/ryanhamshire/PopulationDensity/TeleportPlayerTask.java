@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
@@ -53,9 +54,13 @@ class TeleportPlayerTask implements Runnable
             if(entity instanceof Tameable)
             {
                 Tameable tameable = (Tameable) entity;
-                if(tameable.isTamed() && tameable.getOwner().getUniqueId().equals(player.getUniqueId()))
+                if(tameable.isTamed())
                 {
-                    entitiesToTeleport.add(entity);
+                    AnimalTamer tamer = tameable.getOwner();
+                    if(tamer != null && player.getUniqueId().equals(tamer.getUniqueId()))
+                    {
+                        entitiesToTeleport.add(entity);
+                    }
                 }
             }
             else if(entity instanceof Animals)
