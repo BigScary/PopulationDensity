@@ -149,6 +149,7 @@ public class ScanRegionTask extends Thread
 						material != Material.LEAVES &&
 				        material != Material.LEAVES_2 &&
 		                material != Material.LOG &&
+		                material != Material.LOG_2 &&
 						material != Material.LONG_GRASS &&
 						material != Material.SAND &&
 						material != Material.SANDSTONE &&
@@ -159,7 +160,10 @@ public class ScanRegionTask extends Thread
 						material != Material.YELLOW_FLOWER &&
 						material != Material.MOSSY_COBBLESTONE && 
 						material != Material.CLAY &&
-						material != Material.SUGAR_CANE_BLOCK)
+						material != Material.STAINED_CLAY &&
+						material != Material.SUGAR_CANE_BLOCK &&
+						material != Material.PACKED_ICE &&
+						material != Material.DOUBLE_PLANT)
 				{
 					playerBlocks++;
 				}

@@ -26,6 +26,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -122,7 +123,7 @@ public class BlockEventHandler implements Listener
         lastLocation = from;
 	}
 	
-	//COPY PASTE!  this is practically the same as the above block break handler
+	//when a player places a block
 	@EventHandler(ignoreCancelled = true)
 	public void onBlockPlace(BlockPlaceEvent placeEvent)
 	{
@@ -153,8 +154,30 @@ public class BlockEventHandler implements Listener
 			return;
 		}
 		
+		//if over hopper limit for chunk, send error message
+		Material type = null;
+		if(!player.hasPermission("populationdensity.unlimitedhoppers"))
+		{
+		    type = block.getType();
+		    if(type == Material.HOPPER)
+		    {
+		        int hopperCount = 0;
+		        BlockState [] tiles = block.getChunk().getTileEntities();
+		        for(BlockState tile : tiles)
+		        {
+		            if(tile.getType() == Material.HOPPER && ++hopperCount >= PopulationDensity.instance.config_maximumHoppersPerChunk)
+		            {
+		                placeEvent.setCancelled(true);
+		                PopulationDensity.sendMessage(player, TextMode.Err, Messages.HopperLimitReached, String.valueOf(PopulationDensity.instance.config_maximumHoppersPerChunk));
+		                return;
+		            }
+		        }
+		    }
+		}
+		
 		//if bed or chest and player has not been reminded about /movein this play session
-		if(block.getType() == Material.BED || block.getType() == Material.CHEST)
+		if(type == null) type = block.getType();
+		if(type == Material.BED || type == Material.CHEST)
 		{
 			PlayerData playerData = PopulationDensity.instance.dataStore.getPlayerData(player);
 			if(playerData.advertisedMoveInThisSession) return;

@@ -3,12 +3,16 @@ package me.ryanhamshire.PopulationDensity;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -90,6 +94,7 @@ public class MonitorPerformanceTask implements Runnable
 	    PopulationDensity.serverTicksPerSecond = tps;
 	}
     
+    @SuppressWarnings("deprecation")
     static void thinEntities()
     {
         //thinnable entity types
@@ -197,6 +202,16 @@ public class MonitorPerformanceTask implements Runnable
                             ((Animals) entity).setHealth(0);
                             removedAnimalThisPass = true;
                             totalRemoved++;
+                            
+                            if(PopulationDensity.instance.markRemovedEntityLocations)
+                            {
+                                Block block = entity.getLocation().getBlock();
+                                Material blockType = block.getType();
+                                if(blockType == Material.LONG_GRASS || blockType == Material.AIR)
+                                {
+                                    block.setTypeIdAndData(31, (byte)0, false);  //dead bush
+                                }
+                            }
                         }
                     }
                     else if(type == EntityType.PIG_ZOMBIE && entity.getWorld().getEnvironment() != Environment.NETHER)
@@ -221,10 +236,44 @@ public class MonitorPerformanceTask implements Runnable
         
         if(PopulationDensity.minutesLagging > 5 && PopulationDensity.minutesLagging % 6 == 0)
         {
-            PopulationDensity.AddLogEntry("Remaining living entity distribution:");
-            for(String key : totalEntityCounter.keySet())
+            PopulationDensity.AddLogEntry("Still lagging after thinning entities.  Remaining entities by chunk and type:");
+            PopulationDensity.AddLogEntry("world;chunkx;chunkz;type;count");
+            for(World world : Bukkit.getServer().getWorlds())
             {
-                PopulationDensity.AddLogEntry("  " + key + ": " + totalEntityCounter.get(key).toString());
+                for(Chunk chunk : world.getLoadedChunks())
+                {
+                    BlockState [] blocks = chunk.getTileEntities();
+                    int total = 0;
+                    ConcurrentHashMap<String, Integer> entityCounter = new ConcurrentHashMap<String, Integer>();
+                    for(BlockState block : blocks)
+                    {
+                        String typeName = block.getType().name();
+                        Integer oldValue = entityCounter.get(typeName);
+                        if(oldValue == null) oldValue = 0;
+                        entityCounter.put(typeName, oldValue + 1);
+                        total++;
+                    }
+                    
+                    Entity[] entities = chunk.getEntities();
+                    for(Entity entity : entities)
+                    {
+                        String typeName = entity.getType().name();
+                        Integer oldValue = entityCounter.get(typeName);
+                        if(oldValue == null) oldValue = 0;
+                        entityCounter.put(typeName, oldValue + 1);
+                        total++;
+                    }
+                    
+                    for(String typeName : entityCounter.keySet())
+                    {
+                        PopulationDensity.AddLogEntry(";" + world.getName() + ";" + chunk.getX() + ";" + chunk.getZ() + ";" + typeName + ";" + entityCounter.get(typeName));
+                    }
+                    
+                    if(total > 10)
+                    {
+                        PopulationDensity.AddLogEntry(";" + world.getName() + ";" + chunk.getX() + ";" + chunk.getZ() + ";TOTAL;" + total);
+                    }
+                }
             }
         }
     }

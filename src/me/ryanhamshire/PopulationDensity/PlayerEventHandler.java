@@ -25,7 +25,9 @@ import java.util.Collection;
 import org.bukkit.Location;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -200,7 +202,7 @@ public class PlayerEventHandler implements Listener {
 	}
 
 	// when a player successfully joins the server...
-	@EventHandler(ignoreCancelled = true)
+	@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		
 		Player joiningPlayer = event.getPlayer();
@@ -249,7 +251,7 @@ public class PlayerEventHandler implements Listener {
     			    // unless pop density is configured to force a precise world spawn point
     			    if(PopulationDensity.instance.preciseWorldSpawn)
     			    {
-    			        TeleportPlayerTask task = new TeleportPlayerTask(joiningPlayer, joiningPlayer.getWorld().getSpawnLocation());
+    			        TeleportPlayerTask task = new TeleportPlayerTask(joiningPlayer, joiningPlayer.getWorld().getSpawnLocation(), false);
     			        PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 1L);
     			    }
     			    
@@ -268,6 +270,11 @@ public class PlayerEventHandler implements Listener {
 		        else
 		        {
 		            playerData.homeRegion = RegionCoordinates.fromLocation(joiningPlayer.getLocation());
+		        }
+		        
+		        if(playerData.homeRegion == null)
+		        {
+		            playerData.homeRegion = PopulationDensity.instance.dataStore.getOpenRegion();
 		        }
 		    }
 		    
@@ -383,9 +390,18 @@ public class PlayerEventHandler implements Listener {
 	public void onPlayerInteractEntity(PlayerInteractEntityEvent event)
 	{
 	    Entity entity = event.getRightClicked();
-        if(PopulationDensity.instance.abandonedFarmAnimalsDie && entity instanceof Animals)
+        if(entity instanceof Animals || entity instanceof Minecart || entity instanceof Villager)
 	    {
 	        entity.setTicksLived(1);
+	    }
+	}
+	
+	@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+	public void onPlayerToggleFlight(PlayerToggleFlightEvent event)
+	{
+	    if(PopulationDensity.instance.isFallDamageImmune(event.getPlayer()))
+	    {
+	        event.setCancelled(true);
 	    }
 	}
 }

@@ -35,6 +35,6 @@ class PlaceNewPlayerTask implements Runnable
 	@Override
 	public void run()
 	{
-		PopulationDensity.instance.TeleportPlayer(player, region, true);
+		PopulationDensity.instance.TeleportPlayer(player, region, 0);
 	}
 }

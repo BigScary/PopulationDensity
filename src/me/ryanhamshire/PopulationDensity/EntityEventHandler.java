@@ -48,7 +48,9 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -157,7 +159,27 @@ public class EntityEventHandler implements Listener
 	@EventHandler(ignoreCancelled = true)
 	public void onEntityDamage (EntityDamageEvent event)
 	{
-		if(!(event instanceof EntityDamageByEntityEvent)) return;
+	    Entity entity = event.getEntity();
+	    
+	    //when an entity has fall damage immunity, it lasts for only ONE fall damage check
+        if(event.getCause() == DamageCause.FALL)
+        {
+            if(PopulationDensity.instance.isFallDamageImmune(entity))
+            {
+                event.setCancelled(true);
+                PopulationDensity.instance.removeFallDamageImmunity(entity);
+                if(entity.getType() == EntityType.PLAYER)
+                {
+                    Player player = (Player)entity;
+                    if(!player.hasPermission("populationdensity.teleportanywhere"))
+                    {
+                        player.getWorld().createExplosion(player.getLocation(), 0);
+                    }
+                }
+            }
+        }
+	    
+	    if(!(event instanceof EntityDamageByEntityEvent)) return;
 		
 		EntityDamageByEntityEvent subEvent = (EntityDamageByEntityEvent) event;
 		
@@ -187,7 +209,7 @@ public class EntityEventHandler implements Listener
 		if(attacker != null)
 		{
 			PopulationDensity.instance.resetIdleTimer(attacker);
-		}		
+		}
 	}
 	
 	private int respawnAnimalCounter = 1;
@@ -320,6 +342,17 @@ public class EntityEventHandler implements Listener
                     continue;
                 }
             }
+        }
+    }
+	
+	@EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void onEntityToggleFlight(EntityToggleGlideEvent event)
+    {
+        if(event.getEntityType() != EntityType.PLAYER) return;
+	    
+	    if(PopulationDensity.instance.isFallDamageImmune((Player)event.getEntity()))
+        {
+            event.setCancelled(true);
         }
     }
 }

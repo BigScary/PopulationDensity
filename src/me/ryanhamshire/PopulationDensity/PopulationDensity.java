@@ -22,15 +22,20 @@ import java.io.IOException;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
@@ -39,10 +44,14 @@ import org.bukkit.command.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 
 public class PopulationDensity extends JavaPlugin
 {
@@ -107,10 +116,13 @@ public class PopulationDensity extends JavaPlugin
     public int nearbyMonsterSpawnLimit;
     public int maxRegionNameLength = 10;
     public boolean abandonedFarmAnimalsDie;
-    public boolean logAbandonedFarmDeaths;
+    public boolean unusedMinecartsVanish;
+    public boolean markRemovedEntityLocations;
+    public boolean removeWildSkeletalHorses;
     
     public boolean config_bootIdlePlayersWhenLagging;
     public boolean config_disableGrindersWhenLagging;
+    public int config_maximumHoppersPerChunk;
 	
 	public int minimumRegionPostY;
 	
@@ -124,7 +136,7 @@ public class PopulationDensity extends JavaPlugin
     
     List<String> config_regionNames;
 
-	public synchronized static void AddLogEntry(String entry)
+    public synchronized static void AddLogEntry(String entry)
 	{
 		log.info("PopDensity: " + entry);
 	}
@@ -179,6 +191,7 @@ public class PopulationDensity extends JavaPlugin
 		this.regrowGrass = config.getBoolean("PopulationDensity.GrassRegrows", true);
 		this.respawnAnimals = config.getBoolean("PopulationDensity.AnimalsRespawn", true);
 		this.regrowTrees = config.getBoolean("PopulationDensity.TreesRegrow", true);
+		this.config_maximumHoppersPerChunk = config.getInt("PopulationDensity.Maximum Hoppers Per Chunk", 10);
 		this.thinAnimalAndMonsterCrowds = config.getBoolean("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", true);
 		this.minimumRegionPostY = config.getInt("PopulationDensity.MinimumRegionPostY", 62);
 		this.preciseWorldSpawn = config.getBoolean("PopulationDensity.PreciseWorldSpawn", false);
@@ -197,7 +210,9 @@ public class PopulationDensity extends JavaPlugin
 		this.nearbyMonsterSpawnLimit = config.getInt("PopulationDensity.Max Monsters In Chunk To Spawn More", 2);
 		this.nearbyMonsterSpawnLimit = config.getInt("PopulationDensity.Max Monsters Nearby For More To Spawn", nearbyMonsterSpawnLimit);
 		this.abandonedFarmAnimalsDie = config.getBoolean("PopulationDensity.Abandoned Farm Animals Die", true);
-		this.logAbandonedFarmDeaths = config.getBoolean("PopulationDensity.Log Abandoned Farm Animal Deaths", false);
+		this.unusedMinecartsVanish = config.getBoolean("PopulationDensity.Unused Minecarts Vanish", true);
+		this.markRemovedEntityLocations = config.getBoolean("PopulationDensity.Mark Abandoned Removed Animal Locations With Shrubs", true);
+		this.removeWildSkeletalHorses = config.getBoolean("PopulationDensity.Remove Wild Skeletal Horses", true);
 		
 		SimpleEntry<Integer, Integer> result;
 		result = this.processMaterials(topper);
@@ -328,41 +343,45 @@ public class PopulationDensity extends JavaPlugin
 		}
 		
 		//and write those values back and save. this ensures the config file is available on disk for editing
-		config.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
-		config.set("PopulationDensity.RespawnInHomeRegion", this.respawnInHomeRegion);
-		config.set("PopulationDensity.CityWorldName", this.cityWorldName);
-		config.set("PopulationDensity.AllowTeleportation", this.allowTeleportation);
-		config.set("PopulationDensity.TeleportFromAnywhere", this.teleportFromAnywhere);
-		config.set("PopulationDensity.MaxDistanceFromSpawnToUseHomeRegion", this.maxDistanceFromSpawnToUseHomeRegion);
-		config.set("PopulationDensity.ManagedWorldName", this.managedWorldName);
-		config.set("PopulationDensity.DensityRatio", this.densityRatio);
-		config.set("PopulationDensity.MaxIdleMinutes", this.maxIdleMinutes);
-		config.set("PopulationDensity.LoginQueueEnabled", this.enableLoginQueue);
-		config.set("PopulationDensity.ReservedSlotsForAdministrators", this.reservedSlotsForAdmins);
-		config.set("PopulationDensity.LoginQueueMessage", this.queueMessage);
-		config.set("PopulationDensity.HoursBetweenScans", this.hoursBetweenScans);
-		config.set("PopulationDensity.BuildRegionPosts", this.buildRegionPosts);
-		config.set("PopulationDensity.NewestRegionRequiresPermission", this.newestRegionRequiresPermission);
-		config.set("PopulationDensity.GrassRegrows", this.regrowGrass);
-		config.set("PopulationDensity.AnimalsRespawn", this.respawnAnimals);
-		config.set("PopulationDensity.TreesRegrow", this.regrowTrees);
-        config.set("PopulationDensity.Max Monsters Nearby For More To Spawn", this.nearbyMonsterSpawnLimit);
-		config.set("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", this.thinAnimalAndMonsterCrowds);
-		config.set("PopulationDensity.Abandoned Farm Animals Die", this.abandonedFarmAnimalsDie);
-		config.set("PopulationDensity.Log Abandoned Farm Animal Deaths", this.logAbandonedFarmDeaths);
-		config.set("PopulationDensity.Disable Monster Grinders When Lagging", this.config_disableGrindersWhenLagging);
-        config.set("PopulationDensity.Boot Idle Players When Lagging", this.config_bootIdlePlayersWhenLagging);
-		config.set("PopulationDensity.MinimumRegionPostY", this.minimumRegionPostY);
-		config.set("PopulationDensity.PreciseWorldSpawn", this.preciseWorldSpawn);
-		config.set("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", this.woodMinimum);
-		config.set("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", this.resourceMinimum);
-		config.set("PopulationDensity.PostProtectionDistance", this.postProtectionRadius);
-		config.set("PopulationDensity.Maximum Region Name Length", this.maxRegionNameLength);
-		config.set("PopulationDensity.PostDesign.TopBlock", topper);
-        config.set("PopulationDensity.PostDesign.PostBlocks", post);
-        config.set("PopulationDensity.PostDesign.PlatformOuterRing", outerPlat);
-        config.set("PopulationDensity.PostDesign.PlatformInnerRing", innerPlat);
-        config.set("PopulationDensity.Region Name List", regionNames);
+		FileConfiguration outConfig = new YamlConfiguration();
+		outConfig.set("PopulationDensity.NewPlayersSpawnInHomeRegion", this.newPlayersSpawnInHomeRegion);
+		outConfig.set("PopulationDensity.RespawnInHomeRegion", this.respawnInHomeRegion);
+		outConfig.set("PopulationDensity.CityWorldName", this.cityWorldName);
+		outConfig.set("PopulationDensity.AllowTeleportation", this.allowTeleportation);
+		outConfig.set("PopulationDensity.TeleportFromAnywhere", this.teleportFromAnywhere);
+		outConfig.set("PopulationDensity.MaxDistanceFromSpawnToUseHomeRegion", this.maxDistanceFromSpawnToUseHomeRegion);
+		outConfig.set("PopulationDensity.ManagedWorldName", this.managedWorldName);
+		outConfig.set("PopulationDensity.DensityRatio", this.densityRatio);
+		outConfig.set("PopulationDensity.MaxIdleMinutes", this.maxIdleMinutes);
+		outConfig.set("PopulationDensity.LoginQueueEnabled", this.enableLoginQueue);
+		outConfig.set("PopulationDensity.ReservedSlotsForAdministrators", this.reservedSlotsForAdmins);
+		outConfig.set("PopulationDensity.LoginQueueMessage", this.queueMessage);
+		outConfig.set("PopulationDensity.HoursBetweenScans", this.hoursBetweenScans);
+		outConfig.set("PopulationDensity.BuildRegionPosts", this.buildRegionPosts);
+		outConfig.set("PopulationDensity.NewestRegionRequiresPermission", this.newestRegionRequiresPermission);
+		outConfig.set("PopulationDensity.GrassRegrows", this.regrowGrass);
+		outConfig.set("PopulationDensity.AnimalsRespawn", this.respawnAnimals);
+		outConfig.set("PopulationDensity.TreesRegrow", this.regrowTrees);
+        outConfig.set("PopulationDensity.Max Monsters Nearby For More To Spawn", this.nearbyMonsterSpawnLimit);
+		outConfig.set("PopulationDensity.ThinOvercrowdedAnimalsAndMonsters", this.thinAnimalAndMonsterCrowds);
+		outConfig.set("PopulationDensity.Abandoned Farm Animals Die", this.abandonedFarmAnimalsDie);
+		outConfig.set("PopulationDensity.Unused Minecarts Vanish", this.unusedMinecartsVanish);
+		outConfig.set("PopulationDensity.Mark Removed Animal Locations With Shrubs", this.markRemovedEntityLocations);
+		outConfig.set("PopulationDensity.Remove Wild Skeletal Horses", this.removeWildSkeletalHorses);
+		outConfig.set("PopulationDensity.Disable Monster Grinders When Lagging", this.config_disableGrindersWhenLagging);
+		outConfig.set("PopulationDensity.Maximum Hoppers Per Chunk", this.config_maximumHoppersPerChunk);
+		outConfig.set("PopulationDensity.Boot Idle Players When Lagging", this.config_bootIdlePlayersWhenLagging);
+		outConfig.set("PopulationDensity.MinimumRegionPostY", this.minimumRegionPostY);
+		outConfig.set("PopulationDensity.PreciseWorldSpawn", this.preciseWorldSpawn);
+		outConfig.set("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", this.woodMinimum);
+		outConfig.set("PopulationDensity.MinimumResourceScoreToPlaceNewPlayers", this.resourceMinimum);
+		outConfig.set("PopulationDensity.PostProtectionDistance", this.postProtectionRadius);
+		outConfig.set("PopulationDensity.Maximum Region Name Length", this.maxRegionNameLength);
+		outConfig.set("PopulationDensity.PostDesign.TopBlock", topper);
+        outConfig.set("PopulationDensity.PostDesign.PostBlocks", post);
+        outConfig.set("PopulationDensity.PostDesign.PlatformOuterRing", outerPlat);
+        outConfig.set("PopulationDensity.PostDesign.PlatformInnerRing", innerPlat);
+        outConfig.set("PopulationDensity.Region Name List", regionNames);
 		
 		//this is a combination load/preprocess/save for custom signs on the region posts
 		this.mainCustomSignContent = this.initializeSignContentConfig(config, "PopulationDensity.CustomSigns.Main", new String [] {"", "Population", "Density", ""});
@@ -373,7 +392,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		try
 		{
-			config.save(DataStore.configFilePath);
+			outConfig.save(DataStore.configFilePath);
 		}
 		catch(IOException exception)
 		{
@@ -435,19 +454,16 @@ public class PopulationDensity extends JavaPlugin
 		this.getServer().getScheduler().scheduleSyncRepeatingTask(this, new MonitorPerformanceTask(), 1200L, 1200L);
 		
 		//animals which appear abandoned on chunk load get the grandfather clause treatment
-        if(PopulationDensity.instance.abandonedFarmAnimalsDie)
+        for(World world : this.getServer().getWorlds())
         {
-            for(World world : this.getServer().getWorlds())
+            for(Chunk chunk : world.getLoadedChunks())
             {
-                for(Chunk chunk : world.getLoadedChunks())
+                Entity [] entities = chunk.getEntities();
+                for(Entity entity : entities)
                 {
-                    Entity [] entities = chunk.getEntities();
-                    for(Entity entity : entities)
+                    if(WorldEventHandler.isAbandoned(entity))
                     {
-                        if(WorldEventHandler.isAbandonedFarmAnimal(entity))
-                        {
-                            entity.setTicksLived(1);
-                        }
+                        entity.setTicksLived(1);
                     }
                 }
             }
@@ -550,9 +566,10 @@ public class PopulationDensity extends JavaPlugin
 		
 		if(cmd.getName().equalsIgnoreCase("visit") && player != null)
 		{			
-			if(args.length < 1) return false;
+		    if(args.length < 1) return false;
 			
-			if(!this.playerCanTeleport(player, false)) return true;
+			CanTeleportResult result = this.playerCanTeleport(player, false);
+		    if(!result.canTeleport) return true;
 			
 			@SuppressWarnings("deprecation")
             Player targetPlayer = this.getServer().getPlayerExact(args[0]);
@@ -561,7 +578,15 @@ public class PopulationDensity extends JavaPlugin
 			    PlayerData targetPlayerData = this.dataStore.getPlayerData(targetPlayer);
 			    if(playerData.inviter != null && playerData.inviter.getName().equals(targetPlayer.getName()))
 			    {
-			        this.TeleportPlayer(player, targetPlayerData.homeRegion, false);
+			        if(result.nearPost && this.launchPlayer(player))
+			        {
+			            this.TeleportPlayer(player, targetPlayerData.homeRegion, 2);
+			        }
+			        else
+			        {
+			            this.TeleportPlayer(player, targetPlayerData.homeRegion, 0);
+			        }
+			        
 			    }
 			    else if(this.dataStore.getRegionName(targetPlayerData.homeRegion) == null)
 			    {
@@ -570,7 +595,14 @@ public class PopulationDensity extends JavaPlugin
 			    }
 			    else
 			    {
-			        this.TeleportPlayer(player, targetPlayerData.homeRegion, false);
+			        if(this.launchPlayer(player))
+                    {
+                        this.TeleportPlayer(player, targetPlayerData.homeRegion, 2);
+                    }
+                    else
+                    {
+                        this.TeleportPlayer(player, targetPlayerData.homeRegion, 0);
+                    }
 			    }
 			    
 			    PopulationDensity.sendMessage(player, TextMode.Success, Messages.VisitConfirmation, targetPlayer.getName());
@@ -587,7 +619,14 @@ public class PopulationDensity extends JavaPlugin
     			}
     			
     			//otherwise, teleport the user to the specified region					
-    			this.TeleportPlayer(player, region, false);
+    			if(this.launchPlayer(player))
+                {
+                    this.TeleportPlayer(player, region, 2);
+                }
+                else
+                {
+                    this.TeleportPlayer(player, region, 0);
+                }
 			}
 			
 			return true;
@@ -602,11 +641,19 @@ public class PopulationDensity extends JavaPlugin
 				return true;
 			}
 			
-			if(!this.playerCanTeleport(player, false)) return true;
+			CanTeleportResult result = this.playerCanTeleport(player, false);
+			if(!result.canTeleport) return true;
 			
 			//teleport the user to the open region
 			RegionCoordinates openRegion = this.dataStore.getOpenRegion();
-			this.TeleportPlayer(player, openRegion, false);
+			if(result.nearPost && this.launchPlayer(player))
+            {
+                this.TeleportPlayer(player, openRegion, 2);
+            }
+            else
+            {
+                this.TeleportPlayer(player, openRegion, 0);
+            }
 			
 			PopulationDensity.sendMessage(player, TextMode.Success, Messages.NewestRegionConfirmation);
 			
@@ -684,17 +731,25 @@ public class PopulationDensity extends JavaPlugin
 			}
 			
 			//otherwise teleportation is enabled, so consider config, player location, player permissions					
-			if(this.playerCanTeleport(player, true))
+			CanTeleportResult result = this.playerCanTeleport(player, true);
+			if(result.canTeleport)
 			{
 				Location spawn = CityWorld.getSpawnLocation();
 				
 				Block block = spawn.getBlock();
-				while(block.getType() != Material.AIR)
+				while(block.getType().isSolid())
 				{
 					block = block.getRelative(BlockFace.UP);					
 				}
 				
-				new TeleportPlayerTask(player, block.getLocation()).run();
+				if(result.nearPost && this.launchPlayer(player))
+				{
+				    Bukkit.getScheduler().scheduleSyncDelayedTask(this, new TeleportPlayerTask(player, block.getLocation(), false), 60L);
+				}
+				else
+				{
+				    Bukkit.getScheduler().scheduleSyncDelayedTask(this, new TeleportPlayerTask(player, block.getLocation(), false), 0L);
+				}
 			}
 			
 			return true;
@@ -702,7 +757,8 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("randomregion") && player != null)
         {
-            if(!this.playerCanTeleport(player, false)) return true;
+		    CanTeleportResult result = this.playerCanTeleport(player, false);
+		    if(!result.canTeleport) return true;
             
             RegionCoordinates randomRegion = this.dataStore.getRandomRegion(RegionCoordinates.fromLocation(player.getLocation()));
             
@@ -712,7 +768,15 @@ public class PopulationDensity extends JavaPlugin
             }
             else
             {           
-                this.TeleportPlayer(player, randomRegion, false);
+                if(result.nearPost && this.launchPlayer(player))
+                {
+                    this.TeleportPlayer(player, randomRegion, 2);
+                }
+                else
+                {
+                    this.TeleportPlayer(player, randomRegion, 0);
+                }
+                
             }
             
             return true;
@@ -720,7 +784,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("invite") && player != null)
 		{
-			if(args.length < 1) return false;
+		    if(args.length < 1) return false;
 			
 			//send a notification to the invitee, if he's available
 			@SuppressWarnings("deprecation")
@@ -730,9 +794,6 @@ public class PopulationDensity extends JavaPlugin
 				playerData = this.dataStore.getPlayerData(invitee);
 				playerData.inviter = player;
 				PopulationDensity.sendMessage(player, TextMode.Success, Messages.InviteConfirmation, invitee.getName(), player.getName());
-				
-				PopulationDensity.sendMessage(invitee, TextMode.Success, Messages.InviteNotification, player.getName());
-				PopulationDensity.sendMessage(invitee, TextMode.Instr, Messages.InviteInstruction, player.getName());
 			}
 			else
 			{
@@ -764,7 +825,7 @@ public class PopulationDensity extends JavaPlugin
                 }
                 
                 //otherwise, teleport the target player to the destination region                  
-                this.TeleportPlayer(targetPlayer, destination, true);
+                this.TeleportPlayer(targetPlayer, destination, 0);
                 PopulationDensity.sendMessage(player, TextMode.Success, Messages.PlayerMoved);
             }
             else
@@ -862,7 +923,8 @@ public class PopulationDensity extends JavaPlugin
 		
 		else if(cmd.getName().equalsIgnoreCase("randomregion") && player != null)
 		{
-		    if(!this.playerCanTeleport(player, false)) return true;
+		    CanTeleportResult result = this.playerCanTeleport(player, false);
+		    if(!result.canTeleport) return true;
        
 		    RegionCoordinates randomRegion = this.dataStore.getRandomRegion(RegionCoordinates.fromLocation(player.getLocation()));
        
@@ -872,7 +934,14 @@ public class PopulationDensity extends JavaPlugin
 		    }
 		    else
 		    {           
-		        this.TeleportPlayer(player, randomRegion, false);
+		        if(result.nearPost && this.launchPlayer(player))
+		        {
+		            this.TeleportPlayer(player, randomRegion, 2);
+		        }
+		        else
+		        {
+		            this.TeleportPlayer(player, randomRegion, 0);
+		        }
 		    }
        
 		    return true;
@@ -1007,10 +1076,18 @@ public class PopulationDensity extends JavaPlugin
     private boolean handleHomeCommand(Player player, PlayerData playerData)
 	{
 	    //consider config, player location, player permissions
-        if(this.playerCanTeleport(player, true))
+        CanTeleportResult result = this.playerCanTeleport(player, true);
+        if(result.canTeleport)
         {
             RegionCoordinates homeRegion = playerData.homeRegion;
-            this.TeleportPlayer(player, homeRegion, false);
+            if(result.nearPost && this.launchPlayer(player))
+            {
+                this.TeleportPlayer(player, homeRegion, 2);
+            }
+            else
+            {
+                this.TeleportPlayer(player, homeRegion, 0);
+            }
             return true;
         }
         
@@ -1023,19 +1100,23 @@ public class PopulationDensity extends JavaPlugin
 	}
 	
 	//examines configuration, player permissions, and player location to determine whether or not to allow a teleport
-	private boolean playerCanTeleport(Player player, boolean isHomeOrCityTeleport)
+	@SuppressWarnings("deprecation")
+    private CanTeleportResult playerCanTeleport(Player player, boolean isHomeOrCityTeleport)
 	{
 		//if the player has the permission for teleportation, always allow it
-		if(player.hasPermission("populationdensity.teleportanywhere")) return true;
+		if(player.hasPermission("populationdensity.teleportanywhere")) return new CanTeleportResult(true);
+		
+		//disallow spamming commands to hover in the air
+        if(PopulationDensity.instance.isFallDamageImmune(player) && !player.isOnGround()) return new CanTeleportResult(false);
 		
 		//if teleportation from anywhere is enabled, always allow it
-		if(this.teleportFromAnywhere) return true;
+		if(this.teleportFromAnywhere) return new CanTeleportResult(true);
 		
 		//avoid teleporting from other worlds
 		if(!player.getWorld().equals(ManagedWorld) && (CityWorld == null || !player.getWorld().equals(CityWorld)))
 		{
 			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoTeleportThisWorld);
-			return false;
+			return new CanTeleportResult(false);
 		}
 		
 		//when teleportation isn't allowed, the only exceptions are city to home, and home to city
@@ -1044,33 +1125,55 @@ public class PopulationDensity extends JavaPlugin
 			if(!isHomeOrCityTeleport)
 			{
 				PopulationDensity.sendMessage(player, TextMode.Err, Messages.OnlyHomeCityHere);
-				return false;
+				return new CanTeleportResult(false);
 			}
 			
 			//if city is defined and close to city post, go for it
-            if(nearCityPost(player)) return true;
+            if(nearCityPost(player))
+            {
+                CanTeleportResult result = new CanTeleportResult(true);
+                result.nearCityPost = true;
+                return result;
+            }
 			
 			//if close to home post, go for it
 			PlayerData playerData = this.dataStore.getPlayerData(player);
-			Location homeCenter = getRegionCenter(playerData.homeRegion, true);
-			if(homeCenter.distanceSquared(player.getLocation()) < 100) return true;
+			Location homeCenter = getRegionCenter(playerData.homeRegion, false);
+			Location location = player.getLocation();
+			if(location.getBlockY() >= PopulationDensity.instance.minimumRegionPostY && Math.abs(location.getBlockX() - homeCenter.getBlockX()) < 2 && Math.abs(location.getBlockZ() - homeCenter.getBlockZ()) < 2 && location.getBlock().getLightFromSky() > 0)
+			{
+			    CanTeleportResult result = new CanTeleportResult(true);
+                result.nearPost = true;
+                return result;
+			}
 			
 			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NoTeleportHere);
-			return false;
+			return new CanTeleportResult(false);
 		}
 		
 		//otherwise, any post is acceptable to teleport from or to
 		else
 		{
-		    if(nearCityPost(player)) return true;
+		    if(nearCityPost(player))
+            {
+                CanTeleportResult result = new CanTeleportResult(true);
+                result.nearCityPost = true;
+                return result;
+            }
 		    
 		    RegionCoordinates currentRegion = RegionCoordinates.fromLocation(player.getLocation());
-			Location currentCenter = getRegionCenter(currentRegion, true);
-			if(currentCenter.distanceSquared(player.getLocation()) < 100) return true;
+			Location currentCenter = getRegionCenter(currentRegion, false);
+			Location location = player.getLocation();
+			if(location.getBlockY() >= PopulationDensity.instance.minimumRegionPostY && Math.abs(location.getBlockX() - currentCenter.getBlockX()) < 3 && Math.abs(location.getBlockZ() - currentCenter.getBlockZ()) < 3 && location.getBlock().getLightFromSky() > 0)
+		    {
+			    CanTeleportResult result = new CanTeleportResult(true);
+                result.nearPost = true;
+                return result;
+		    }
 			
 			PopulationDensity.sendMessage(player, TextMode.Err, Messages.NotCloseToPost);
 			PopulationDensity.sendMessage(player, TextMode.Instr, Messages.HelpMessage1, ChatColor.UNDERLINE + "" + ChatColor.AQUA + "http://bit.ly/mcregions");
-			return false;			
+			return new CanTeleportResult(false);			
 		}
 	}
 	
@@ -1086,26 +1189,17 @@ public class PopulationDensity extends JavaPlugin
 
 	//teleports a player to a specific region of the managed world, notifying players of arrival/departure as necessary
 	//players always land at the region's region post, which is placed on the surface at the center of the region
-	public void TeleportPlayer(Player player, RegionCoordinates region, boolean silent)
+	public void TeleportPlayer(Player player, RegionCoordinates region, int delaySeconds)
 	{
 		//where specifically to send the player?
 		Location teleportDestination = getRegionCenter(region, false);
 		int x = teleportDestination.getBlockX();
 		int z = teleportDestination.getBlockZ();
 		
-		//make sure the chunk is loaded
-		try
-		{
-		    GuaranteeChunkLoaded(x, z);
-		}
-		catch(ChunkLoadException e){}  //we did our best, hope the server will load the chunk when we teleport the player
-		
-		//find a safe height, on the surface		
-		Block highestBlock = ManagedWorld.getHighestBlockAt(x, z);
-		teleportDestination = new Location(ManagedWorld, x, highestBlock.getY(), z);		
-		
-		//send him
-		new TeleportPlayerTask(player, teleportDestination).run();
+		//drop the player from the sky
+		teleportDestination = new Location(ManagedWorld, x, ManagedWorld.getMaxHeight() + 10, z, player.getLocation().getYaw(), 90);		
+		TeleportPlayerTask task = new TeleportPlayerTask(player, teleportDestination, true);
+		Bukkit.getScheduler().scheduleSyncDelayedTask(this, task, delaySeconds * 20);
 		
 		//kill bad guys in the area
 		PopulationDensity.removeMonstersAround(teleportDestination);
@@ -1235,7 +1329,6 @@ public class PopulationDensity extends JavaPlugin
 		
 		Location center = new Location(ManagedWorld, x, PopulationDensity.instance.minimumRegionPostY, z);
 				
-		//PopulationDensity.GuaranteeChunkLoaded(ManagedWorld.getChunkAt(center).getX(), ManagedWorld.getChunkAt(center).getZ());		
 		if(computeY) center = ManagedWorld.getHighestBlockAt(center).getLocation();
 		
 		return center;
@@ -1374,5 +1467,45 @@ public class PopulationDensity extends JavaPlugin
         {
             task.run();
         }
+    }
+    
+    HashSet<UUID> fallImmunityList = new HashSet<UUID>();
+    void makeEntityFallDamageImmune(LivingEntity entity)
+    {
+        if(entity.getType() == EntityType.PLAYER)
+        {
+            Player player = (Player) entity;
+            if(player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+            player.setFlying(false);
+            player.setGliding(false);
+        }
+        entity.setGliding(false);
+        entity.setMetadata("PD_NOFALLDMG", new FixedMetadataValue(this, true));
+        fallImmunityList.add(entity.getUniqueId());
+    }
+    
+    boolean isFallDamageImmune(Entity entity)
+    {
+        return entity.hasMetadata("PD_NOFALLDMG") || fallImmunityList.contains(entity.getUniqueId());
+    }
+    
+    void removeFallDamageImmunity(Entity entity)
+    {
+        entity.removeMetadata("PD_NOFALLDMG", this);
+        fallImmunityList.remove(entity.getUniqueId());
+    }
+    
+    boolean launchPlayer(Player player)
+    {
+        if(!((Entity)player).isOnGround()) return false;
+        this.makeEntityFallDamageImmune(player);
+        Location newViewAngle = player.getLocation();
+        newViewAngle.setPitch(90);
+        player.teleport(newViewAngle);
+        player.setVelocity(new Vector(0, 50, 0));
+        player.setFlying(false);
+        player.setGliding(false);
+        player.playSound(player.getEyeLocation(), Sound.ENTITY_GHAST_SHOOT, .75f, 1f);
+        return true;
     }
 }

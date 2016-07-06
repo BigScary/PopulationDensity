@@ -22,8 +22,13 @@ import java.util.List;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Horse;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Tameable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -39,18 +44,25 @@ public class WorldEventHandler implements Listener
 	{		
 		Chunk chunk = chunkLoadEvent.getChunk();
 		
-		//animals which appear abandoned on chunk load get the grandfather clause treatment
-		if(PopulationDensity.instance.abandonedFarmAnimalsDie)
-		{
-		    Entity [] entities = chunk.getEntities();
-		    for(Entity entity : entities)
-		    {
-		        if(isAbandonedFarmAnimal(entity))
-		        {
-		            entity.setTicksLived(1);
-		        }
-		    }
-		}
+		Entity [] entities = chunk.getEntities();
+	    for(Entity entity : entities)
+	    {
+	        //entities which appear abandoned on chunk load get the grandfather clause treatment
+	        if(isAbandoned(entity))
+	        {
+	            entity.setTicksLived(1);
+	        }
+	        
+	        //skeletal horses never go away unless slain.  on chunk load, remove any which aren't leashed or carrying a rider
+	        if(entity.getType() == EntityType.HORSE && PopulationDensity.instance.removeWildSkeletalHorses)
+	        {
+	            Horse horse = (Horse)entity;
+	            if(horse.getVariant() == Horse.Variant.SKELETON_HORSE && !horse.isLeashed() && horse.getPassenger() == null && horse.getCustomName() == null)
+	            {
+	                horse.setHealth(0);
+	            }
+	        }
+	    }
 		
 		//nothing more to do in worlds other than the managed world
 		if(chunk.getWorld() != PopulationDensity.ManagedWorld) return;
@@ -76,31 +88,62 @@ public class WorldEventHandler implements Listener
 		}
 	}
 	
-	static boolean isAbandonedFarmAnimal(Entity entity)
+	static boolean isAbandoned(Entity entity)
 	{
 	    String customName = entity.getCustomName();
 	    if(customName != null && !customName.isEmpty()) return false;
-        if(!(entity instanceof Animals) || (entity instanceof Tameable)) return false;
+        if((entity instanceof Tameable)) return false;
         
-        //if in the dark, treat as wilderness animal
+        final int DAY_IN_TICKS = 1728000;
+        
+        int darkMaxTicks = DAY_IN_TICKS;
+        int lightMaxTicks = DAY_IN_TICKS * 3;
+        
+        //determine how long to wait for player interaction before deciding an entity is abandoned
+        if(entity instanceof Animals && PopulationDensity.instance.abandonedFarmAnimalsDie)
+        {
+            //can afford to be aggressive with animals because they're easy to re-breed
+            darkMaxTicks = DAY_IN_TICKS;
+            lightMaxTicks = DAY_IN_TICKS * 3;
+        }
+        else if(entity instanceof Minecart && PopulationDensity.instance.unusedMinecartsVanish)
+        {
+            darkMaxTicks = lightMaxTicks = DAY_IN_TICKS * 7;
+        }
+        else  //if not one of the above, don't remove it even if long-lived without interaction
+        {
+            return false;
+        }
+        
+        //triple allowance if a player nametagged the entity
+        if(customName != null && !customName.isEmpty())
+        {
+            darkMaxTicks *= 3;
+            lightMaxTicks *= 3;
+        }
+        
+        //if in the dark, treat as wilderness creature which won't live as long
         byte lightLevel = entity.getLocation().getBlock().getLightFromBlocks();
-        if(lightLevel < 4 && entity.getTicksLived() > 1728000)  //in the dark and 1 day in ticks without player interaction
+        if(lightLevel < 4 && entity.getTicksLived() > darkMaxTicks)  //in the dark
         {
             return true;
         }
-        else if(entity.getTicksLived() > 5184000) //in the light and 3 days in ticks without player interaction 
+        else if(entity.getTicksLived() > lightMaxTicks) //in the light 
         {
-            //only remove if there are at least two similar animals nearby, to allow for rebreeding later
-            List<Entity> nearbyEntities = entity.getNearbyEntities(15, 15, 15);
-            int nearbySimilar = 0;
-            for(Entity nearby : nearbyEntities)
+            //only remove if there are at least two similar entities nearby, to allow for rebreeding later
+            if(!(entity instanceof Minecart))  //doesn't apply to minecarts, they're more easily replaced
             {
-                if(nearby.getType() == entity.getType() && !nearby.hasMetadata("pd_removed"))
+                List<Entity> nearbyEntities = entity.getNearbyEntities(15, 15, 15);
+                int nearbySimilar = 0;
+                for(Entity nearby : nearbyEntities)
                 {
-                    nearbySimilar++;
-                    if(nearbySimilar > 1)
+                    if(nearby.getType() == entity.getType() && !nearby.hasMetadata("pd_removed"))
                     {
-                        return true;
+                        nearbySimilar++;
+                        if(nearbySimilar > 1)
+                        {
+                            return true;
+                        }
                     }
                 }
             }
@@ -115,7 +158,7 @@ public class WorldEventHandler implements Listener
         Chunk chunk = event.getChunk();
         
         //expire any abandoned animals
-        removeAbandonedFarmAnimals(chunk);
+        removeAbandonedEntities(chunk);
         
         //nothing more to do in worlds other than the managed world
         if(chunk.getWorld() != PopulationDensity.ManagedWorld) return;
@@ -142,25 +185,31 @@ public class WorldEventHandler implements Listener
         }
     }
 
-    static void removeAbandonedFarmAnimals(Chunk chunk)
+    @SuppressWarnings("deprecation")
+    static void removeAbandonedEntities(Chunk chunk)
     {
-        if(PopulationDensity.instance.abandonedFarmAnimalsDie)
+        Entity [] entities = chunk.getEntities();
+        for(int i = 0; i < entities.length; i++)
         {
-            Entity [] entities = chunk.getEntities();
-            for(int i = 0; i < entities.length; i++)
+            Entity entity = entities[i];
+            if(isAbandoned(entity))
             {
-                Entity entity = entities[i];
-                if(isAbandonedFarmAnimal(entity))
+                if(PopulationDensity.instance.markRemovedEntityLocations)
                 {
-                    if(PopulationDensity.instance.logAbandonedFarmDeaths)
+                    Block block = entity.getLocation().getBlock();
+                    Material blockType = block.getType();
+                    if(blockType == Material.LONG_GRASS || blockType == Material.AIR)
                     {
-                        PopulationDensity.AddLogEntry("Removed abandoned " + entity.getType().name().toLowerCase() + " @ " + entity.getLocation().toString());
+                        block.setTypeIdAndData(31, (byte)2, false);  //fern
                     }
-                    
-                    //entity.remove() removes on next tick, so must mark removed entities with metadata so we know which were removed this tick
-                    entity.setMetadata("pd_removed", new FixedMetadataValue(PopulationDensity.instance, true));
-                    entity.remove();
                 }
+                
+                //eject any riders (for pigs, minecarts)
+                entity.eject();
+                
+                //entity.remove() removes on next tick, so must mark removed entities with metadata so we know which were removed this tick
+                entity.setMetadata("pd_removed", new FixedMetadataValue(PopulationDensity.instance, true));
+                entity.remove();
             }
         }
     }   

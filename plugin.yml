@@ -1,7 +1,7 @@
 name: PopulationDensity
 main: me.ryanhamshire.PopulationDensity.PopulationDensity
 softdepend: [Multiverse-Core, My Worlds, Transporter, MystCraft]
-version: 5.5.1
+version: 5.6
 commands:
    visit:
       description: Teleports the player to a specified region.
@@ -94,6 +94,7 @@ permissions:
             populationdensity.sendregion: true
             populationdensity.nameregion: true
             populationdensity.renameregion: true
+            populationdensity.unlimitedhoppers: true
     populationdensity.newestregion:
         description: Grants permission to use /NewestRegion.
         default: op
@@ -139,3 +140,6 @@ permissions:
     populationdensity.listregions:
         description: Grants access to /ListRegions.
         default: true
+    populationdensity.unlimitedhoppers:
+        description: Players with this permission node ignore the hoppers-per-chunk limit defined in the config file.
+        default: op

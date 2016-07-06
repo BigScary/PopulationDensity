@@ -857,9 +857,7 @@ public class DataStore implements TabCompleter
         this.addDefault(defaults, Messages.RegionNamesOnlyLettersAndNumbers, "Region names may not include symbols or punctuation.", null);
         this.addDefault(defaults, Messages.RegionNameConflict, "There's already a region by that name.", null);
         this.addDefault(defaults, Messages.NoMoreRegions, "Sorry, you're in the only region.  Over time, more regions will open.", null);
-        this.addDefault(defaults, Messages.InviteConfirmation, "Invitation sent!  {0} can use /visit {1} to teleport to your home post.", "0: invitee's name, 1: inviter's name");
-        this.addDefault(defaults, Messages.InviteNotification, "{0} has invited you to visit!", "0: inviter's name");
-        this.addDefault(defaults, Messages.InviteInstruction, "Use /visit {0} to teleport there.", "0: inviter's name");
+        this.addDefault(defaults, Messages.InviteConfirmation, "{0} may now use /visit {1} to teleport to your home post.", "0: invitee's name, 1: inviter's name");
         this.addDefault(defaults, Messages.PlayerNotFound, "There's no player named \"{0}\" online right now.", "0: specified name");
         this.addDefault(defaults, Messages.SetHomeConfirmation, "Home set to the nearest region post!", null);
         this.addDefault(defaults, Messages.SetHomeInstruction1, "Use /Home from any region post to teleport to your home post.", null);
@@ -875,6 +873,7 @@ public class DataStore implements TabCompleter
         this.addDefault(defaults, Messages.PlayerMoved, "Player moved.", null);
         this.addDefault(defaults, Messages.Lag, "lag", null);
         this.addDefault(defaults, Messages.RegionAlreadyNamed, "This region already has a name.  To REname, use /RenameRegion.", null);
+        this.addDefault(defaults, Messages.HopperLimitReached, "To prevent server lag, hoppers are limited to {0} per chunk.", "0: maximum hoppers per chunk");
         
         //load the config file
         FileConfiguration config = YamlConfiguration.loadConfiguration(new File(messagesFilePath));

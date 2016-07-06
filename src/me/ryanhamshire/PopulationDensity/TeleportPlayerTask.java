@@ -22,10 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Animals;
-import org.bukkit.entity.Creature;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Tameable;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
@@ -35,20 +36,21 @@ class TeleportPlayerTask implements Runnable
 {	
 	private Player player;
 	private Location destination;
+	private boolean makeFallDamageImmune;
 	
-	public TeleportPlayerTask(Player player, Location destination)
+	public TeleportPlayerTask(Player player, Location destination, boolean makeFallDamageImmune)
 	{
 		this.player = player;
 		this.destination = destination;
+		this.makeFallDamageImmune = makeFallDamageImmune;
 	}
 	
 	@Override
 	public void run()
 	{
 		ArrayList<Entity> entitiesToTeleport = new ArrayList<Entity>();
-		entitiesToTeleport.add(player);
-
-		List<Entity> nearbyEntities = player.getNearbyEntities(10, 10, 10);
+		
+		List<Entity> nearbyEntities = player.getNearbyEntities(5, this.player.getWorld().getMaxHeight(), 5);
 		for(Entity entity : nearbyEntities)
 		{
             if(entity instanceof Tameable)
@@ -63,27 +65,37 @@ class TeleportPlayerTask implements Runnable
                     }
                 }
             }
+            
             else if(entity instanceof Animals)
             {
-                Animals animal = (Animals)entity;
-                if(animal.getTarget() != null && animal.getTarget().equals(player))
-                {
-                    entitiesToTeleport.add(animal);
-                }
+                entitiesToTeleport.add(entity);
             }
-            else if(entity instanceof Creature)
+            
+            if(entity instanceof LivingEntity)
 		    {
-		        Creature creature = (Creature) entity;
-		        if(creature.isLeashed() && player.equals(creature.getLeashHolder()) || player.equals(creature.getPassenger()))
+                LivingEntity creature = (LivingEntity) entity;
+		        if((creature.isLeashed() && player.equals(creature.getLeashHolder())) || player.equals(creature.getPassenger()))
 		        {
 		            entitiesToTeleport.add(creature);
 		        }
 		    }
 		}
 		
-	    for(Entity entity : entitiesToTeleport)
+		player.teleport(destination, TeleportCause.PLUGIN);
+		if(this.makeFallDamageImmune)
+		{
+		    PopulationDensity.instance.makeEntityFallDamageImmune(player);
+		}
+		
+		//sound effect
+        player.playSound(destination, Sound.ENTITY_ENDERMEN_TELEPORT, 1f, 1f);
+        
+		for(Entity entity : entitiesToTeleport)
 	    {
-	        entity.teleport(destination, TeleportCause.PLUGIN);
+	        if(!(entity instanceof LivingEntity)) continue;
+	        LivingEntity livingEntity = (LivingEntity)entity;
+		    PopulationDensity.instance.makeEntityFallDamageImmune(livingEntity);
+		    entity.teleport(destination, TeleportCause.PLUGIN);
 	    }
 	}
 }
