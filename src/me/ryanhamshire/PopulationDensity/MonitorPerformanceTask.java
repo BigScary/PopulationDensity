@@ -178,6 +178,14 @@ public class MonitorPerformanceTask implements Runnable
                             totalRemoved++;
                         }
                     }
+                    else if(type == EntityType.BOAT)
+                    {
+                        if(count > 5)
+                        {
+                            entity.remove();
+                            totalRemoved++;
+                        }
+                    }
                     else if(entity instanceof Monster)
                     {
                         if(++monsterCount > 2)
