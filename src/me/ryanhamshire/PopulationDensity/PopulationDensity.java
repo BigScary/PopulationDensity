@@ -1502,10 +1502,14 @@ public class PopulationDensity extends JavaPlugin
         Location newViewAngle = player.getLocation();
         newViewAngle.setPitch(90);
         player.teleport(newViewAngle);
-        player.setVelocity(new Vector(0, 50, 0));
+        try
+        {
+            player.setVelocity(new Vector(0, 50, 0));
+            player.playSound(player.getEyeLocation(), Sound.ENTITY_GHAST_SHOOT, .75f, 1f);
+        }
+        catch(Exception e) {}
         player.setFlying(false);
         player.setGliding(false);
-        player.playSound(player.getEyeLocation(), Sound.ENTITY_GHAST_SHOOT, .75f, 1f);
         return true;
     }
 }
