@@ -26,9 +26,12 @@ import org.bukkit.Sound;
 import org.bukkit.entity.AnimalTamer;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Ocelot;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Tameable;
+import org.bukkit.entity.Wolf;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 
 //teleports a player.  useful as scheduled task so that a joining player may be teleported (otherwise error)
@@ -53,7 +56,7 @@ class TeleportPlayerTask implements Runnable
 		List<Entity> nearbyEntities = player.getNearbyEntities(5, this.player.getWorld().getMaxHeight(), 5);
 		for(Entity entity : nearbyEntities)
 		{
-            if(entity instanceof Tameable)
+            if(entity instanceof Tameable && entity.getType() != EntityType.HORSE)
             {
                 Tameable tameable = (Tameable) entity;
                 if(tameable.isTamed())
@@ -61,12 +64,30 @@ class TeleportPlayerTask implements Runnable
                     AnimalTamer tamer = tameable.getOwner();
                     if(tamer != null && player.getUniqueId().equals(tamer.getUniqueId()))
                     {
+                        EntityType type = entity.getType();
+                        if(type == EntityType.OCELOT)
+                        {
+                            Ocelot cat = (Ocelot)entity;
+                            if(cat.isSitting())
+                            {
+                                continue;
+                            }
+                        }
+                        else if(type == EntityType.WOLF)
+                        {
+                            Wolf dog = (Wolf)entity;
+                            if(dog.isSitting())
+                            {
+                                continue;
+                            }
+                        }
+                        
                         entitiesToTeleport.add(entity);
                     }
                 }
             }
             
-            else if(entity instanceof Animals)
+            else if(entity instanceof Animals && entity.getType() != EntityType.HORSE)
             {
                 entitiesToTeleport.add(entity);
             }
