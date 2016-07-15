@@ -233,16 +233,10 @@ public class PlayerEventHandler implements Listener {
     			// entirely new players who've not visited the server before will
     			// spawn in their home region by default.
     			// if configured as such, teleport him there in a couple of seconds
-    			Location centerOfHomeRegion = PopulationDensity.getRegionCenter(playerData.homeRegion, false);
-    			try
-    			{
-    			    PopulationDensity.GuaranteeChunkLoaded(centerOfHomeRegion.getBlockX(), centerOfHomeRegion.getBlockZ());
-    			}
-    			catch(ChunkLoadException e) {} //ignore and hope the server will load the chunk before teleporting the player
     			if (PopulationDensity.instance.newPlayersSpawnInHomeRegion && joiningPlayer.getLocation().distanceSquared(joiningPlayer.getWorld().getSpawnLocation()) < 625) 
     			{
     				PlaceNewPlayerTask task = new PlaceNewPlayerTask(joiningPlayer, playerData.homeRegion);
-    				PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 40L);
+    				PopulationDensity.instance.getServer().getScheduler().scheduleSyncDelayedTask(PopulationDensity.instance, task, 1L);
     			}
     			
     			// otherwise allow other plugins to control spawning a new player
