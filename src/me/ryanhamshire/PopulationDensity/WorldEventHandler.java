@@ -34,6 +34,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 
 public class WorldEventHandler implements Listener
@@ -59,7 +60,11 @@ public class WorldEventHandler implements Listener
 	            Horse horse = (Horse)entity;
 	            if(horse.getVariant() == Horse.Variant.SKELETON_HORSE && !horse.isLeashed() && horse.getPassenger() == null && horse.getCustomName() == null)
 	            {
-	                horse.setHealth(0);
+	                ItemStack saddleStack = horse.getInventory().getSaddle();
+	                if(saddleStack == null || saddleStack.getType() != Material.SADDLE)
+	                {
+	                    horse.setHealth(0);
+	                }
 	            }
 	        }
 	    }
