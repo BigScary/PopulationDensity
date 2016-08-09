@@ -337,8 +337,11 @@ public class EntityEventHandler implements Listener
                 if (toHandle.getType() == Material.GRASS) // Block is grass
                 {
                     Block aboveBlock = toHandle.getRelative(BlockFace.UP);
-                	aboveBlock.setType(Material.LONG_GRASS);
-                    aboveBlock.setData((byte) 1);  //data == 1 means live grass instead of dead shrub
+                    if(aboveBlock.getType() == Material.AIR)
+                    {
+                    	aboveBlock.setType(Material.LONG_GRASS);
+                        aboveBlock.setData((byte) 1);  //data == 1 means live grass instead of dead shrub
+                    }
                     continue;
                 }
             }
