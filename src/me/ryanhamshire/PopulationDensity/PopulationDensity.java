@@ -1488,7 +1488,6 @@ public class PopulationDensity extends JavaPlugin
         {
             Player player = (Player) entity;
             if(player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
-            player.setFlying(false);
             player.setGliding(false);
         }
         entity.setGliding(false);
@@ -1509,6 +1508,7 @@ public class PopulationDensity extends JavaPlugin
     
     boolean launchPlayer(Player player)
     {
+        if(player.isFlying()) return false;
         if(!((Entity)player).isOnGround()) return false;
         this.makeEntityFallDamageImmune(player);
         Location newViewAngle = player.getLocation();
