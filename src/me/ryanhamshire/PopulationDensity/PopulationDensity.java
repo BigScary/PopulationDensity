@@ -120,6 +120,7 @@ public class PopulationDensity extends JavaPlugin
     public boolean markRemovedEntityLocations;
     public boolean removeWildSkeletalHorses;
     
+    public boolean config_captureSpigotTimingsWhenLagging = true;
     public boolean config_bootIdlePlayersWhenLagging;
     public boolean config_disableGrindersWhenLagging;
     public int config_maximumHoppersPerChunk;
@@ -134,6 +135,8 @@ public class PopulationDensity extends JavaPlugin
 
     public int postProtectionRadius;
     
+    boolean isSpigotServer = false;
+    
     List<String> config_regionNames;
 
     public synchronized static void AddLogEntry(String entry)
@@ -147,6 +150,13 @@ public class PopulationDensity extends JavaPlugin
 		AddLogEntry("PopulationDensity enabled.");		
 		
 		instance = this;
+		
+	    try
+	    {
+	        Class.forName("org.spigotmc.SpigotConfig");
+	        isSpigotServer = true;
+	    }
+	    catch(ClassNotFoundException e) {}
 		
 		//load the config if it exists
 		FileConfiguration config = YamlConfiguration.loadConfiguration(new File(DataStore.configFilePath));
@@ -202,6 +212,7 @@ public class PopulationDensity extends JavaPlugin
 		
 		this.config_disableGrindersWhenLagging = config.getBoolean("PopulationDensity.Disable Monster Grinders When Lagging", true);
 		this.config_bootIdlePlayersWhenLagging = config.getBoolean("PopulationDensity.Boot Idle Players When Lagging", true);
+		this.config_captureSpigotTimingsWhenLagging = config.getBoolean("PopulationDensity.Capture Spigot Timings When Lagging", true);
 		
 		String topper = config.getString("PopulationDensity.PostDesign.TopBlock", "89:0");  //default glowstone
 		String post = config.getString("PopulationDensity.PostDesign.PostBlocks", "89:0");
@@ -371,6 +382,7 @@ public class PopulationDensity extends JavaPlugin
 		outConfig.set("PopulationDensity.Disable Monster Grinders When Lagging", this.config_disableGrindersWhenLagging);
 		outConfig.set("PopulationDensity.Maximum Hoppers Per Chunk", this.config_maximumHoppersPerChunk);
 		outConfig.set("PopulationDensity.Boot Idle Players When Lagging", this.config_bootIdlePlayersWhenLagging);
+		outConfig.set("PopulationDensity.Capture Spigot Timings When Lagging", this.config_captureSpigotTimingsWhenLagging);
 		outConfig.set("PopulationDensity.MinimumRegionPostY", this.minimumRegionPostY);
 		outConfig.set("PopulationDensity.PreciseWorldSpawn", this.preciseWorldSpawn);
 		outConfig.set("PopulationDensity.MinimumWoodAvailableToPlaceNewPlayers", this.woodMinimum);

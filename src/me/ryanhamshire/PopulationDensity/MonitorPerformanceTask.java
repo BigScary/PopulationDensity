@@ -30,7 +30,6 @@ public class MonitorPerformanceTask implements Runnable
     @Override
     public void run() 
 	{
-		
 	    if(lastExecutionTimestamp == null)
 	    {
 	        lastExecutionTimestamp = System.currentTimeMillis();
@@ -56,6 +55,12 @@ public class MonitorPerformanceTask implements Runnable
 	    
 	    if(tps > 19)
 	    {
+	        //if we were lagging but aren't anymore, stop collecting performance data
+	        if(PopulationDensity.instance.config_captureSpigotTimingsWhenLagging && PopulationDensity.instance.isSpigotServer && minutesLagging >= 5)
+	        {
+	            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "timings off");
+	        }
+	        
 	        minutesLagging = 0;
 	    }
 	    else
@@ -64,6 +69,21 @@ public class MonitorPerformanceTask implements Runnable
 	        if(PopulationDensity.instance.config_bootIdlePlayersWhenLagging)
 	        {
 	            bootIdlePlayers = true;
+	        }
+	        
+	        if(PopulationDensity.instance.config_captureSpigotTimingsWhenLagging && PopulationDensity.instance.isSpigotServer)
+	        {
+    	        //if lagging at least 5 minutes, start collecting performance data
+	            if(minutesLagging == 5)
+    	        {
+    	            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "timings on");
+    	        }
+    	        
+    	        //if lagging for 10 minutes, generate a performance report
+                else if(minutesLagging == 10)
+    	        {
+    	            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "timings paste");
+    	        }
 	        }
 	    }
 	    
