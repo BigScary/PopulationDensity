@@ -158,6 +158,10 @@ public class WorldEventHandler implements Listener
                     }
                 }
             }
+            else
+            {
+                return true;
+            }
         }
         
         return false;
