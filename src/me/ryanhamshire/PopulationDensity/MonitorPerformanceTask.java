@@ -48,7 +48,6 @@ public class MonitorPerformanceTask implements Runnable
     
     public static void treatLag(float tps)
     {
-	    int minutesLagging = 0;
 	    boolean stopGrinders = false;
 	    boolean bootIdlePlayers = false;
 	    boolean removeEntities = false; 
@@ -56,52 +55,47 @@ public class MonitorPerformanceTask implements Runnable
 	    if(tps > 19)
 	    {
 	        //if we were lagging but aren't anymore, stop collecting performance data
-	        if(PopulationDensity.instance.config_captureSpigotTimingsWhenLagging && PopulationDensity.instance.isSpigotServer && minutesLagging >= 5)
+	        if(PopulationDensity.minutesLagging > 5 && PopulationDensity.instance.config_captureSpigotTimingsWhenLagging && PopulationDensity.instance.isSpigotServer)
 	        {
 	            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "timings off");
 	        }
 	        
-	        minutesLagging = 0;
+	        PopulationDensity.minutesLagging = 0;
 	    }
 	    else
 	    {
-	        minutesLagging = PopulationDensity.minutesLagging + 1;
+	        PopulationDensity.minutesLagging++;
+	        
 	        if(PopulationDensity.instance.config_bootIdlePlayersWhenLagging)
 	        {
 	            bootIdlePlayers = true;
 	        }
 	        
+	        if(PopulationDensity.instance.config_disableGrindersWhenLagging)
+            {
+                stopGrinders = true;
+            }
+	        
 	        if(PopulationDensity.instance.config_captureSpigotTimingsWhenLagging && PopulationDensity.instance.isSpigotServer)
 	        {
     	        //if lagging at least 5 minutes, start collecting performance data
-	            if(minutesLagging == 5)
+	            if(PopulationDensity.minutesLagging == 5)
     	        {
     	            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "timings on");
     	        }
     	        
     	        //if lagging for 10 minutes, generate a performance report
-                else if(minutesLagging == 10)
+                else if(PopulationDensity.minutesLagging == 10)
     	        {
     	            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "timings paste");
     	        }
 	        }
-	    }
-	    
-	    if(tps <= 19)
-	    {
-	        PopulationDensity.minutesLagging += 1;
-	        if(PopulationDensity.instance.config_disableGrindersWhenLagging)
+	        
+	        if(tps <= 16 || PopulationDensity.minutesLagging >= 5)
 	        {
-	            stopGrinders = true;
+	            removeEntities = true;
 	        }
 	    }
-	    
-	    if(tps <= 16 || minutesLagging >= 5)
-	    {
-	        removeEntities = true;
-	    }
-	    	    
-	    PopulationDensity.minutesLagging = minutesLagging;
 	    
 	    PopulationDensity.bootingIdlePlayersForLag = bootIdlePlayers;
 	    PopulationDensity.grindersStopped = stopGrinders;
