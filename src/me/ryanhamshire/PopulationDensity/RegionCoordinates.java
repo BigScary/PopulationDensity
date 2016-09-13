@@ -43,10 +43,8 @@ public class RegionCoordinates
 		//keeping all regions the same size and arranging them in a strict grid makes this calculation supa-fast!
 		//that's important because we do it A LOT as players move, build, break blocks, and more
 		int x = location.getBlockX() / PopulationDensity.REGION_SIZE;
-		if(location.getX() < 0) x--;
 		
 		int z = location.getBlockZ() / PopulationDensity.REGION_SIZE;
-		if(location.getZ() < 0) z--;
 		
 		return new RegionCoordinates(x, z);		
 	}
